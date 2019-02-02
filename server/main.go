@@ -7,16 +7,17 @@ import (
 	"time"
 	"strconv"
 	"errors"
+	"strings"
 	"net/http"
 	"encoding/json"
 	"crypto/sha256"
 	"encoding/hex"
 	"math/rand"
 
-  "golang.org/x/net/websocket"
-  "golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/websocket"
+	"golang.org/x/crypto/bcrypt"
 
-  "github.com/google/uuid"
+	"github.com/google/uuid"
 )
 
 // code 生成字典
@@ -37,6 +38,9 @@ const TYPE_SERVICE_REQUESTER = 2
 const TYPE_SERVICE_MIN_VALUE = 1
 // 服务类型最大值
 const TYPE_SERVICE_MAX_VALUE = 3
+
+const TIMEOUT_TOKEN_EXPIRE = 604800 // 授权有效期为 7 天
+const TIMEOUT_TOKEN_DELETE = 259200 // 授权失效后，保留 UserToken 3 天
 
 type ServiceInfo struct {
 	// 服务 ID
@@ -63,11 +67,20 @@ type AuthorizationInfo struct {
 	// 服务授权状态
 	// see: STATUS_AUTHORIZATION_WAITING, STATUS_AUTHORIZATION_USER_GRANT, STATUS_AUTHORIZATION_USER_DENY
 	AuthorizationStatus int
+
+	// 用户 Token 创建时间
+	TokenCreateTime int64
+	// 用户 Token 刷新时间
+	TokenUpdateTime int64
+	// 用户 Token 过期时间
+	TokenExpireTime int64
+	// 用户 Token 将被删除的时间
+	TokenDeleteTime int64
 }
 
 // 返回消息结构
 type Result struct {
-	Code int							`json:"code"`
+	Code int 					`json:"code"`
 	Data interface{}			`json:"data"`
 }
 
@@ -123,12 +136,18 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	timestamp := time.Now().Unix()
+
 	authorizationMap[authorizationCode] = AuthorizationInfo {
 		userName,
 		userTokenEncode,
 		serviceProviderId,
 		serviceRequesterId,
 		STATUS_AUTHORIZATION_WAITING,
+		timestamp,
+		timestamp,
+		timestamp + TIMEOUT_TOKEN_EXPIRE,
+		timestamp + TIMEOUT_TOKEN_EXPIRE + TIMEOUT_TOKEN_DELETE,
 	}
 
 	go sendAuthorizationEmail(authorizationCode, authorizationMap[authorizationCode], userToken)
@@ -155,8 +174,6 @@ func AuthorizationGrantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delete(authorizationEmailMap, authorizationCode)
-
 	authorizationInfo, ok := authorizationMap[authorizationCode]
 
 	if !ok {
@@ -164,9 +181,13 @@ func AuthorizationGrantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("Grant Authorization", code, authorizationCode)
+
 	authorizationInfo.AuthorizationStatus = STATUS_AUTHORIZATION_USER_GRANT
 
 	authorizationMap[authorizationCode] = authorizationInfo
+
+	updateUserTokenTime(authorizationInfo)
 
 	wirteBody(w, 1, "Authorized success")
 }
@@ -186,7 +207,7 @@ func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delete(authorizationEmailMap, authorizationCode)
+	delete(authorizationEmailMap, code)
 
 	authorizationInfo, ok := authorizationMap[authorizationCode]
 
@@ -195,11 +216,63 @@ func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("Deny Authorization", code, authorizationCode)
+
 	authorizationInfo.AuthorizationStatus = STATUS_AUTHORIZATION_USER_DENY
 
 	authorizationMap[authorizationCode] = authorizationInfo
 
+	updateUserTokenTime(authorizationInfo)
+
 	wirteBody(w, 1, "Denied authorization")
+}
+
+func AuthorizationUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	authorizationCode := r.PostFormValue("authCode")
+	userToken := r.PostFormValue("userToken")
+
+	if "" == authorizationCode {
+		wirteError(w, -1, errors.New("authCode is empty"))
+		return
+	} else if "" == userToken {
+		wirteError(w, -2, errors.New("userToken is empty"))
+		return
+	}
+
+	authorizationInfo, ok := authorizationMap[authorizationCode]
+
+	if !ok {
+		wirteError(w, -3, errors.New("authCode is an invalid value"))
+		return
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(authorizationInfo.UserTokenEncode), []byte(userToken))
+
+	if err != nil {
+		wirteError(w, -4, errors.New("userToken is an invalid value"))
+		return
+	}
+
+	timestamp := time.Now().Unix()
+
+	if authorizationInfo.TokenExpireTime < timestamp {
+		if (authorizationInfo.TokenDeleteTime < timestamp) {
+			delete(authorizationMap, authorizationCode)
+		}
+		wirteError(w, -5, errors.New("userToken has expired"))
+		return
+	}
+
+	authorizationStatus := authorizationInfo.AuthorizationStatus
+
+	if STATUS_AUTHORIZATION_USER_DENY == authorizationStatus {
+		wirteError(w, -6, errors.New("The user denied access"))
+		return
+	}
+
+	updateUserTokenTime(authorizationInfo)
+
+	wirteBody(w, 1, "update userToken successfully")
 }
 
 func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
@@ -228,11 +301,22 @@ func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorizationStatus := authorizationInfo.AuthorizationStatus
+	timestamp := time.Now().Unix()
 
-	if STATUS_AUTHORIZATION_USER_DENY == authorizationStatus {
-		delete(authorizationMap, authorizationCode)
+	t1 := strconv.FormatInt(timestamp - authorizationInfo.TokenExpireTime, 10)
+	t2 := strconv.FormatInt(timestamp - authorizationInfo.TokenDeleteTime, 10)
+
+	fmt.Println(t1, t2)
+
+	if authorizationInfo.TokenExpireTime < timestamp {
+		if (authorizationInfo.TokenDeleteTime < timestamp) {
+			delete(authorizationMap, authorizationCode)
+		}
+		wirteError(w, -5, errors.New("userToken has expired"))
+		return
 	}
+
+	authorizationStatus := authorizationInfo.AuthorizationStatus
 
 	wirteBody(w, 1, map[string]int { "authStatus": authorizationStatus })
 }
@@ -362,6 +446,13 @@ func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 	wirteError(w, -6, errors.New("serviceToken is an invalid value"))
 }
 
+func updateUserTokenTime(authorizationInfo AuthorizationInfo) {
+	timestamp := time.Now().Unix()
+	authorizationInfo.TokenUpdateTime = timestamp
+	authorizationInfo.TokenExpireTime = timestamp + TIMEOUT_TOKEN_EXPIRE
+	authorizationInfo.TokenDeleteTime = timestamp + TIMEOUT_TOKEN_EXPIRE + TIMEOUT_TOKEN_DELETE
+}
+
 func genAuthCodeAndToken(userName string, serviceProvider ServiceInfo, serviceRequester ServiceInfo) (string, string, string, error) {
 	UUID := genUUID()
 
@@ -441,12 +532,52 @@ func genUUID() uuid.UUID {
 func sendAuthorizationEmail(authorizationCode string, authorizationInfo AuthorizationInfo, userToken string) {
 	emailCode := genUUID().String()
 
-	authorizationEmailMap[emailCode] = authorizationCode
+	grantUrl := "http://" + ServerDomain + "/authorization/grant?code=" + emailCode
+	denyUrl := "http://" + ServerDomain + "/authorization/deny?code=" + emailCode
 
-	grantUrl := ServerDomain + "/authorization/grant?code=" + emailCode
-	denyUrl := ServerDomain + "/authorization/deny?code=" + emailCode
+	serviceProvider, serviceProviderIdOk := serviceProviderMap[authorizationInfo.ServiceProviderId]
+	serviceRequester, serviceRequesterIdOk := serviceRequesterMap[authorizationInfo.ServiceRequesterId]
 
-	fmt.Println(grantUrl, denyUrl)
+	if !serviceProviderIdOk || !serviceRequesterIdOk {
+		fmt.Println("Send authorization email failure and emailCode is", authorizationCode)
+		return
+	}
+
+	to := authorizationInfo.UserName
+
+	toSplit := strings.Split(to, "@")
+	if 2 != len(toSplit) {
+		fmt.Println("UserName is an invalid value")
+		return
+	}
+
+	fristAndSecondName := strings.Split(toSplit[0], ".")
+	callName := strings.Join(fristAndSecondName, " ")
+	callTime := time.Now().Format("Mon Jan _2 15:04:05 2006")
+
+	subject := "允许" + serviceRequester.ServiceName + "访问您的" + serviceProvider.ServiceName + "服务吗"
+	body := "hi, " + callName + 
+			":<p>允许" + 
+			serviceRequester.ServiceName + 
+			"(" + serviceRequester.ServiceId + ")" + 
+			"访问您的" + serviceProvider.ServiceName  + 
+			"(" + serviceProvider.ServiceId + ")" + "服务吗<p>" + 
+			"如果允许访问，请点击<p>" + 
+			"<a href=\"" + grantUrl + "\">" + "允许</a><p>" + 
+			"如果不允许访问，请点击<p>" + 
+			"<a href=\"" + denyUrl + "\">" + "拒绝</a><p>" + 
+			"允许之后可以选择拒绝，拒绝之后无法选择允许，请周知。<p>请勿回复本邮件，谢谢<p>" + 
+			"<div style=\"text-align: right\">whoam<p>Asia/Shanghai " + callTime + "</p></div>"
+
+	fmt.Println("Do you allow", serviceRequester.ServiceId, "to access", serviceProvider.ServiceId)
+
+	err := SendMail(to, subject, body)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("to", to, "mail send finished")
+		authorizationEmailMap[emailCode] = authorizationCode
+	}
 }
 
 func wirteResult(w http.ResponseWriter, code int, data interface{}) error {
@@ -490,13 +621,21 @@ var ServerPort int
 var ServerDomain string
 
 func init() {
-	flag.IntVar(&ServerPort, "p", 8030, "authorization server port")
-	flag.StringVar(&ServerDomain, "h", "http://localhost:8030", "authorization server domain")
+	ip, err := externalIP()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	port := 8030
+
+	flag.IntVar(&ServerPort, "p", port, "Authorization server port")
+	flag.StringVar(&ServerDomain, "h", ip + ":" + strconv.Itoa(port), "Authorization server domain")
 }
 
 func main() {
 	flag.Parse()
 	flag.Usage()
+	time.FixedZone("CST", 8*3600)
 
 	if ServerDomain == "" {
 		fmt.Println("ServerDomain is empty")
@@ -504,6 +643,10 @@ func main() {
 	}
 
 	fmt.Println("ServerPort: ", ServerPort)
+
+	setupMailCredentials("Enter e-mail username: ", "Enter e-mail password: ")
+
+	fmt.Println("Whoam is working")
 
 	authorizationMap = make(map[string]AuthorizationInfo)
 	serviceProviderMap = make(map[string]ServiceInfo)
@@ -514,6 +657,7 @@ func main() {
 	http.HandleFunc("/authorization/request", AuthorizationRequestHandler)
 	http.HandleFunc("/authorization/grant", AuthorizationGrantHandler)
 	http.HandleFunc("/authorization/deny", AuthorizationDenyHandler)
+	http.HandleFunc("/authorization/update", AuthorizationUpdateHandler)
 	http.HandleFunc("/authorization/state", AuthorizationStateHandler)
 	http.HandleFunc("/serice/register", ServiceRegiesterHandler)
 	http.HandleFunc("/serice/unregister", ServiceUnRegiesterHandler)
