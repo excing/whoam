@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"net"
-	"os"
-	"flag"
-	"time"
 	"bufio"
-	"syscall"
-	"strings"
-	"math/rand"
 	"crypto/tls"
-	"net/smtp"
 	"encoding/base64"
+	"flag"
+	"fmt"
+	"math/rand"
+	"net"
+	"net/smtp"
+	"os"
+	"strings"
+	"syscall"
+	"time"
 
 	"golang.org/x/crypto/ssh/terminal"
 
@@ -29,6 +29,7 @@ type _PlainAuth struct {
 	host                         string
 }
 
+// Start 开始
 func (a *_PlainAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 	if server.Name != a.host {
 		return "", nil, errors.New("wrong host name")
@@ -37,6 +38,7 @@ func (a *_PlainAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 	return "PLAIN", resp, nil
 }
 
+// Next
 func (a *_PlainAuth) Next(from_server []byte, more bool) ([]byte, error) {
 	if more {
 		// We've already sent everything.
@@ -60,7 +62,8 @@ func init() {
 	flag.StringVar(&smtpAddress, "smtp", "smtp.gmail.com:587", "Send mail (SMTP) server address")
 }
 
-func setupMailCredentials(enterUsernameTip, enterPasswordTip string) {
+// SetupMailCredentials 设置邮箱信息
+func SetupMailCredentials(enterUsernameTip, enterPasswordTip string) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print(enterUsernameTip)
@@ -79,7 +82,8 @@ func setupMailCredentials(enterUsernameTip, enterPasswordTip string) {
 	// fmt.Println(userName, password, proxyAddress, smtpAddress)
 }
 
-func SendMail(to string, subjcet string, body string) (error) {
+// SendMail 发送短信
+func SendMail(to string, subjcet string, body string) error {
 	if "" == userName {
 		return errors.New("userName is empty")
 	} else if "" == password {
@@ -124,10 +128,10 @@ func SendMail(to string, subjcet string, body string) (error) {
 		if 2 != len(spli) {
 			return errors.New("smtpAddress is an invalid value")
 		}
-		c.StartTLS( &tls.Config { ServerName: spli[0] } )
+		c.StartTLS(&tls.Config{ServerName: spli[0]})
 	}
 
-	auth := plainAuth ( "", userName, password, host )
+	auth := plainAuth("", userName, password, host)
 	if err = c.Auth(auth); err != nil {
 		return err
 	}

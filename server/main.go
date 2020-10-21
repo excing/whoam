@@ -1,21 +1,21 @@
 package main
 
 import (
-	"os"
-	"flag"
-	"fmt"
-	"time"
-	"strconv"
-	"errors"
-	"strings"
-	"net/http"
-	"encoding/json"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
 	"math/rand"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 
-	"golang.org/x/net/websocket"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/websocket"
 
 	"github.com/google/uuid"
 )
@@ -25,17 +25,22 @@ const KEYS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 // 授权状态：等待中
 const STATUS_AUTHORIZATION_WAITING = 0
+
 // 授权状态：同意授权
 const STATUS_AUTHORIZATION_USER_GRANT = 1
+
 // 授权状态：拒绝授权
 const STATUS_AUTHORIZATION_USER_DENY = -1
 
 // 服务类型：内容提供者
 const TYPE_SERVICE_PROVIDER = 1
+
 // 服务类型：内容消费者
 const TYPE_SERVICE_REQUESTER = 2
+
 // 服务类型最小值
 const TYPE_SERVICE_MIN_VALUE = 1
+
 // 服务类型最大值
 const TYPE_SERVICE_MAX_VALUE = 3
 
@@ -80,16 +85,19 @@ type AuthorizationInfo struct {
 
 // 返回消息结构
 type Result struct {
-	Code int 					`json:"code"`
-	Data interface{}			`json:"data"`
+	Code int         `json:"code"`
+	Data interface{} `json:"data"`
 }
 
 // 授权请求列表. key 为 authorizationCode, value 为用户 Token 的用户信息, 包含授权状态
 var authorizationMap map[string]AuthorizationInfo
+
 // 服务提供方列表. key 为 ServiceId, value 为 ServiceInfo
 var serviceProviderMap map[string]ServiceInfo
+
 // 服务请求方列表. key 为 ServiceId, value 为 ServiceInfo
 var serviceRequesterMap map[string]ServiceInfo
+
 // 请求授权邮件列表
 var authorizationEmailMap map[string]string
 
@@ -138,7 +146,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	timestamp := time.Now().Unix()
 
-	authorizationMap[authorizationCode] = AuthorizationInfo {
+	authorizationMap[authorizationCode] = AuthorizationInfo{
 		userName,
 		userTokenEncode,
 		serviceProviderId,
@@ -256,7 +264,7 @@ func AuthorizationUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	timestamp := time.Now().Unix()
 
 	if authorizationInfo.TokenExpireTime < timestamp {
-		if (authorizationInfo.TokenDeleteTime < timestamp) {
+		if authorizationInfo.TokenDeleteTime < timestamp {
 			delete(authorizationMap, authorizationCode)
 		}
 		wirteError(w, -5, errors.New("userToken has expired"))
@@ -303,13 +311,13 @@ func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
 
 	timestamp := time.Now().Unix()
 
-	t1 := strconv.FormatInt(timestamp - authorizationInfo.TokenExpireTime, 10)
-	t2 := strconv.FormatInt(timestamp - authorizationInfo.TokenDeleteTime, 10)
+	t1 := strconv.FormatInt(timestamp-authorizationInfo.TokenExpireTime, 10)
+	t2 := strconv.FormatInt(timestamp-authorizationInfo.TokenDeleteTime, 10)
 
 	fmt.Println(t1, t2)
 
 	if authorizationInfo.TokenExpireTime < timestamp {
-		if (authorizationInfo.TokenDeleteTime < timestamp) {
+		if authorizationInfo.TokenDeleteTime < timestamp {
 			delete(authorizationMap, authorizationCode)
 		}
 		wirteError(w, -5, errors.New("userToken has expired"))
@@ -318,7 +326,7 @@ func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
 
 	authorizationStatus := authorizationInfo.AuthorizationStatus
 
-	wirteBody(w, 1, map[string]int { "authStatus": authorizationStatus })
+	wirteBody(w, 1, map[string]int{"authStatus": authorizationStatus})
 }
 
 func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
@@ -340,7 +348,7 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 
 	serviceType, err := strconv.Atoi(serviceTypeStr)
 
-	if err != nil {	
+	if err != nil {
 		wirteError(w, -4, errors.New("serviceType is an invalid value"))
 		return
 	} else if serviceType < TYPE_SERVICE_MIN_VALUE || TYPE_SERVICE_MAX_VALUE < serviceType {
@@ -362,7 +370,7 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			serviceProviderMap[serviceId] = ServiceInfo {
+			serviceProviderMap[serviceId] = ServiceInfo{
 				serviceId,
 				serviceName,
 				serviceDesc,
@@ -384,7 +392,7 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			serviceRequesterMap[serviceId] = ServiceInfo {
+			serviceRequesterMap[serviceId] = ServiceInfo{
 				serviceId,
 				serviceName,
 				serviceDesc,
@@ -427,7 +435,7 @@ func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 		err := bcrypt.CompareHashAndPassword([]byte(serviceProvider.ServiceTokenEncode), []byte(serviceToken))
 
 		if err == nil {
-			delete (serviceProviderMap, serviceId)
+			delete(serviceProviderMap, serviceId)
 			wirteBody(w, 1, "This service has been successfully unregistered")
 			return
 		}
@@ -437,7 +445,7 @@ func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 		err := bcrypt.CompareHashAndPassword([]byte(serviceRequester.ServiceTokenEncode), []byte(serviceToken))
 
 		if err == nil {
-			delete (serviceRequesterMap, serviceId)
+			delete(serviceRequesterMap, serviceId)
 			wirteBody(w, 1, "This service has been successfully unregistered")
 			return
 		}
@@ -499,14 +507,14 @@ const (
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
-var src = rand.NewSource(time.Now().UnixNano())
+var r = rand.NewSource(time.Now().UnixNano())
 
 // see: https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go?answertab=votes#tab-top
 func genRandCode(n int, dict string) string {
 	b := make([]byte, n)
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+	for i, cache, remain := n-1, r.Int63(), letterIdxMax; i >= 0; {
 		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
+			cache, remain = r.Int63(), letterIdxMax
 		}
 		if idx := int(cache & letterIdxMask); idx < len(dict) {
 			b[i] = dict[idx]
@@ -556,18 +564,18 @@ func sendAuthorizationEmail(authorizationCode string, authorizationInfo Authoriz
 	callTime := time.Now().Format("Mon Jan _2 15:04:05 2006")
 
 	subject := "允许" + serviceRequester.ServiceName + "访问您的" + serviceProvider.ServiceName + "服务吗"
-	body := "hi, " + callName + 
-			":<p>允许" + 
-			serviceRequester.ServiceName + 
-			"(" + serviceRequester.ServiceId + ")" + 
-			"访问您的" + serviceProvider.ServiceName  + 
-			"(" + serviceProvider.ServiceId + ")" + "服务吗<p>" + 
-			"如果允许访问，请点击<p>" + 
-			"<a href=\"" + grantUrl + "\">" + "允许</a><p>" + 
-			"如果不允许访问，请点击<p>" + 
-			"<a href=\"" + denyUrl + "\">" + "拒绝</a><p>" + 
-			"允许之后可以选择拒绝，拒绝之后无法选择允许，请周知。<p>请勿回复本邮件，谢谢<p>" + 
-			"<div style=\"text-align: right\">whoam<p>Asia/Shanghai " + callTime + "</p></div>"
+	body := "hi, " + callName +
+		":<p>允许" +
+		serviceRequester.ServiceName +
+		"(" + serviceRequester.ServiceId + ")" +
+		"访问您的" + serviceProvider.ServiceName +
+		"(" + serviceProvider.ServiceId + ")" + "服务吗<p>" +
+		"如果允许访问，请点击<p>" +
+		"<a href=\"" + grantUrl + "\">" + "允许</a><p>" +
+		"如果不允许访问，请点击<p>" +
+		"<a href=\"" + denyUrl + "\">" + "拒绝</a><p>" +
+		"允许之后可以选择拒绝，拒绝之后无法选择允许，请周知。<p>请勿回复本邮件，谢谢<p>" +
+		"<div style=\"text-align: right\">whoam<p>Asia/Shanghai " + callTime + "</p></div>"
 
 	fmt.Println("Do you allow", serviceRequester.ServiceId, "to access", serviceProvider.ServiceId)
 
@@ -581,7 +589,7 @@ func sendAuthorizationEmail(authorizationCode string, authorizationInfo Authoriz
 }
 
 func wirteResult(w http.ResponseWriter, code int, data interface{}) error {
-	resultJson, err := json.Marshal( Result{code, data} )
+	resultJson, err := json.Marshal(Result{code, data})
 	if err != nil {
 		return err
 	}
@@ -593,11 +601,11 @@ func wirteResult(w http.ResponseWriter, code int, data interface{}) error {
 
 // 统一错误输出接口
 func wirteError(w http.ResponseWriter, code int, err error) {
-	fmt.Println(code , ",", err)
+	fmt.Println(code, ",", err)
 
-	errJson, err := json.Marshal( Result{code, err.Error()} )
+	errJson, err := json.Marshal(Result{code, err.Error()})
 	if err != nil {
-		wirteResponse(w, "{\"code\": " + strconv.Itoa(code) + ",\"data\": \"" + err.Error() + "\"}")
+		wirteResponse(w, "{\"code\": "+strconv.Itoa(code)+",\"data\": \""+err.Error()+"\"}")
 	} else {
 		wirteResponse(w, string(errJson))
 	}
@@ -621,7 +629,7 @@ var ServerPort int
 var ServerDomain string
 
 func init() {
-	ip, err := externalIP()
+	ip, err := ExternalIP()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -629,7 +637,7 @@ func init() {
 	port := 8030
 
 	flag.IntVar(&ServerPort, "p", port, "Authorization server port")
-	flag.StringVar(&ServerDomain, "h", ip + ":" + strconv.Itoa(port), "Authorization server domain")
+	flag.StringVar(&ServerDomain, "h", ip+":"+strconv.Itoa(port), "Authorization server domain")
 }
 
 func main() {
@@ -644,7 +652,7 @@ func main() {
 
 	fmt.Println("ServerPort: ", ServerPort)
 
-	setupMailCredentials("Enter e-mail username: ", "Enter e-mail password: ")
+	SetupMailCredentials("Enter e-mail username: ", "Enter e-mail password: ")
 
 	fmt.Println("Whoam is working")
 
@@ -661,6 +669,6 @@ func main() {
 	http.HandleFunc("/authorization/state", AuthorizationStateHandler)
 	http.HandleFunc("/serice/register", ServiceRegiesterHandler)
 	http.HandleFunc("/serice/unregister", ServiceUnRegiesterHandler)
-	err := http.ListenAndServe("0.0.0.0:" + strconv.Itoa(ServerPort), nil)
+	err := http.ListenAndServe("0.0.0.0:"+strconv.Itoa(ServerPort), nil)
 	fmt.Println(err)
 }

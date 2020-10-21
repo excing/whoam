@@ -5,7 +5,8 @@ import (
 	"net"
 )
 
-func externalIP() (string, error) {
+// ExternalIP 获取 IP
+func ExternalIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "", err
