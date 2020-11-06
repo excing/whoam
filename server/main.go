@@ -20,36 +20,37 @@ import (
 	"github.com/google/uuid"
 )
 
-// code 生成字典
+// KEYS code 生成字典
 const KEYS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 // 授权状态：等待中
-const STATUS_AUTHORIZATION_WAITING = 0
+const statusAuthorizationWaiting = 0
 
 // 授权状态：同意授权
-const STATUS_AUTHORIZATION_USER_GRANT = 1
+const statusAuthorizationUserGrant = 1
 
 // 授权状态：拒绝授权
-const STATUS_AUTHORIZATION_USER_DENY = -1
+const statusAuthorizationUserDeny = -1
 
 // 服务类型：内容提供者
-const TYPE_SERVICE_PROVIDER = 1
+const typeServiceProvider = 1
 
 // 服务类型：内容消费者
-const TYPE_SERVICE_REQUESTER = 2
+const typeServiceRequester = 2
 
 // 服务类型最小值
-const TYPE_SERVICE_MIN_VALUE = 1
+const typeServiceMinValue = 1
 
 // 服务类型最大值
-const TYPE_SERVICE_MAX_VALUE = 3
+const typeServiceMaxValue = 3
 
-const TIMEOUT_TOKEN_EXPIRE = 604800 // 授权有效期为 7 天
-const TIMEOUT_TOKEN_DELETE = 259200 // 授权失效后，保留 UserToken 3 天
+const timeoutTokenExpire = 604800 // 授权有效期为 7 天
+const timeoutTokenDelete = 259200 // 授权失效后，保留 UserToken 3 天
 
+// ServiceInfo 服务信息
 type ServiceInfo struct {
 	// 服务 ID
-	ServiceId string
+	ServiceID string
 	// 服务名
 	ServiceName string
 	// 服务详细，可选
@@ -58,7 +59,7 @@ type ServiceInfo struct {
 	ServiceTokenEncode string
 }
 
-// 认证请求信息
+// AuthorizationInfo 认证请求信息
 // 请求用户将 ServiceProvider 服务授权给 ServiceRequester
 type AuthorizationInfo struct {
 	// 用户名
@@ -66,9 +67,9 @@ type AuthorizationInfo struct {
 	// 用户 Token 的 crypto/bcrypt 值
 	UserTokenEncode string
 	// 提供方服务ID
-	ServiceProviderId string
+	ServiceProviderID string
 	// 请求方服务ID
-	ServiceRequesterId string
+	ServiceRequesterID string
 	// 服务授权状态
 	// see: STATUS_AUTHORIZATION_WAITING, STATUS_AUTHORIZATION_USER_GRANT, STATUS_AUTHORIZATION_USER_DENY
 	AuthorizationStatus int
@@ -83,7 +84,7 @@ type AuthorizationInfo struct {
 	TokenDeleteTime int64
 }
 
-// 返回消息结构
+// Result 返回消息结构
 type Result struct {
 	Code int         `json:"code"`
 	Data interface{} `json:"data"`
@@ -101,37 +102,38 @@ var serviceRequesterMap map[string]ServiceInfo
 // 请求授权邮件列表
 var authorizationEmailMap map[string]string
 
+// AuthorizationRequestAsyncHandler websocket
 func AuthorizationRequestAsyncHandler(ws *websocket.Conn) {
 
 }
 
-// /authorization/request?username=&providerId=&requesterId=
+// AuthorizationRequestHandler /authorization/request?username=&providerId=&requesterId=
 func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	userName := r.PostFormValue("username")
-	serviceProviderId := r.PostFormValue("providerId")
-	serviceRequesterId := r.PostFormValue("requesterId")
+	serviceProviderID := r.PostFormValue("providerId")
+	serviceRequesterID := r.PostFormValue("requesterId")
 
 	if "" == userName {
 		wirteError(w, -1, errors.New("username is empty"))
 		return
-	} else if "" == serviceProviderId {
+	} else if "" == serviceProviderID {
 		wirteError(w, -2, errors.New("providerId is empty"))
 		return
-	} else if "" == serviceRequesterId {
+	} else if "" == serviceRequesterID {
 		wirteError(w, -3, errors.New("requesterId is empty"))
 		return
-	} else if serviceProviderId == serviceRequesterId {
+	} else if serviceProviderID == serviceRequesterID {
 		wirteError(w, -6, errors.New("providerId equals requesterId"))
 		return
 	}
 
-	serviceProvider, serviceProviderIdOk := serviceProviderMap[serviceProviderId]
-	serviceRequester, serviceRequesterIdOk := serviceRequesterMap[serviceRequesterId]
+	serviceProvider, serviceProviderIDOk := serviceProviderMap[serviceProviderID]
+	serviceRequester, serviceRequesterIDOk := serviceRequesterMap[serviceRequesterID]
 
-	if !serviceProviderIdOk {
+	if !serviceProviderIDOk {
 		wirteError(w, -4, errors.New("Can not find the service pointed to by providerId"))
 		return
-	} else if !serviceRequesterIdOk {
+	} else if !serviceRequesterIDOk {
 		wirteError(w, -5, errors.New("Can not find the service pointed to by requesterId"))
 		return
 	}
@@ -139,7 +141,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	authorizationCode, userToken, userTokenEncode, err := genAuthCodeAndToken(userName, serviceProvider, serviceRequester)
 
 	if err != nil {
-		fmt.Println("Request authorization failed: ", userName, serviceProviderId, serviceRequesterId)
+		fmt.Println("Request authorization failed: ", userName, serviceProviderID, serviceRequesterID)
 		wirteError(w, -7, errors.New("Request authorization failed"))
 		return
 	}
@@ -149,13 +151,13 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	authorizationMap[authorizationCode] = AuthorizationInfo{
 		userName,
 		userTokenEncode,
-		serviceProviderId,
-		serviceRequesterId,
-		STATUS_AUTHORIZATION_WAITING,
+		serviceProviderID,
+		serviceRequesterID,
+		statusAuthorizationWaiting,
 		timestamp,
 		timestamp,
-		timestamp + TIMEOUT_TOKEN_EXPIRE,
-		timestamp + TIMEOUT_TOKEN_EXPIRE + TIMEOUT_TOKEN_DELETE,
+		timestamp + timeoutTokenExpire,
+		timestamp + timeoutTokenExpire + timeoutTokenDelete,
 	}
 
 	go sendAuthorizationEmail(authorizationCode, authorizationMap[authorizationCode], userToken)
@@ -167,6 +169,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	wirteBody(w, 1, data)
 }
 
+// AuthorizationGrantHandler 允许授权
 func AuthorizationGrantHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 
@@ -191,7 +194,7 @@ func AuthorizationGrantHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Grant Authorization", code, authorizationCode)
 
-	authorizationInfo.AuthorizationStatus = STATUS_AUTHORIZATION_USER_GRANT
+	authorizationInfo.AuthorizationStatus = statusAuthorizationUserGrant
 
 	authorizationMap[authorizationCode] = authorizationInfo
 
@@ -200,6 +203,7 @@ func AuthorizationGrantHandler(w http.ResponseWriter, r *http.Request) {
 	wirteBody(w, 1, "Authorized success")
 }
 
+// AuthorizationDenyHandler 拒绝授权
 func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 
@@ -226,7 +230,7 @@ func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Deny Authorization", code, authorizationCode)
 
-	authorizationInfo.AuthorizationStatus = STATUS_AUTHORIZATION_USER_DENY
+	authorizationInfo.AuthorizationStatus = statusAuthorizationUserDeny
 
 	authorizationMap[authorizationCode] = authorizationInfo
 
@@ -235,6 +239,7 @@ func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
 	wirteBody(w, 1, "Denied authorization")
 }
 
+// AuthorizationUpdateHandler 刷新授权状态
 func AuthorizationUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	authorizationCode := r.PostFormValue("authCode")
 	userToken := r.PostFormValue("userToken")
@@ -273,7 +278,7 @@ func AuthorizationUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	authorizationStatus := authorizationInfo.AuthorizationStatus
 
-	if STATUS_AUTHORIZATION_USER_DENY == authorizationStatus {
+	if statusAuthorizationUserDeny == authorizationStatus {
 		wirteError(w, -6, errors.New("The user denied access"))
 		return
 	}
@@ -283,6 +288,7 @@ func AuthorizationUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	wirteBody(w, 1, "update userToken successfully")
 }
 
+// AuthorizationStateHandler 获取授权状态
 func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
 	authorizationCode := r.PostFormValue("authCode")
 	userToken := r.PostFormValue("userToken")
@@ -329,13 +335,14 @@ func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
 	wirteBody(w, 1, map[string]int{"authStatus": authorizationStatus})
 }
 
+// ServiceRegiesterHandler 注册服务
 func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
-	serviceId := r.PostFormValue("serviceId")
+	serviceID := r.PostFormValue("serviceId")
 	serviceName := r.PostFormValue("serviceName")
 	serviceDesc := r.PostFormValue("serviceDesc")
 	serviceTypeStr := r.PostFormValue("serviceType")
 
-	if "" == serviceId {
+	if "" == serviceID {
 		wirteError(w, -1, errors.New("serviceId is empty"))
 		return
 	} else if "" == serviceName {
@@ -351,7 +358,7 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		wirteError(w, -4, errors.New("serviceType is an invalid value"))
 		return
-	} else if serviceType < TYPE_SERVICE_MIN_VALUE || TYPE_SERVICE_MAX_VALUE < serviceType {
+	} else if serviceType < typeServiceMinValue || typeServiceMaxValue < serviceType {
 		wirteError(w, -5, errors.New("serviceType is a wrong value"))
 		return
 	}
@@ -360,9 +367,9 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 
 	registerResult := make(map[string]string)
 
-	if TYPE_SERVICE_PROVIDER == (serviceType & TYPE_SERVICE_PROVIDER) {
-		if _, ok := serviceProviderMap[serviceId]; !ok {
-			token, encodeToken, err := genServiceToken(serviceId)
+	if typeServiceProvider == (serviceType & typeServiceProvider) {
+		if _, ok := serviceProviderMap[serviceID]; !ok {
+			token, encodeToken, err := genServiceToken(serviceID)
 
 			if err != nil {
 				fmt.Println("Provider", err)
@@ -370,8 +377,8 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			serviceProviderMap[serviceId] = ServiceInfo{
-				serviceId,
+			serviceProviderMap[serviceID] = ServiceInfo{
+				serviceID,
 				serviceName,
 				serviceDesc,
 				encodeToken,
@@ -382,9 +389,9 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if TYPE_SERVICE_REQUESTER == (serviceType & TYPE_SERVICE_REQUESTER) {
-		if _, ok := serviceRequesterMap[serviceId]; !ok {
-			token, encodeToken, err := genServiceToken(serviceId)
+	if typeServiceRequester == (serviceType & typeServiceRequester) {
+		if _, ok := serviceRequesterMap[serviceID]; !ok {
+			token, encodeToken, err := genServiceToken(serviceID)
 
 			if err != nil {
 				fmt.Println("Requester", err)
@@ -392,8 +399,8 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			serviceRequesterMap[serviceId] = ServiceInfo{
-				serviceId,
+			serviceRequesterMap[serviceID] = ServiceInfo{
+				serviceID,
 				serviceName,
 				serviceDesc,
 				encodeToken,
@@ -411,11 +418,12 @@ func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ServiceUnRegiesterHandler 注销服务
 func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
-	serviceId := r.PostFormValue("serviceId")
+	serviceID := r.PostFormValue("serviceId")
 	serviceToken := r.PostFormValue("serviceToken")
 
-	if "" == serviceId {
+	if "" == serviceID {
 		wirteError(w, -1, errors.New("serviceId is empty"))
 		return
 	} else if "" == serviceToken {
@@ -423,8 +431,8 @@ func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceProvider, providerOk := serviceProviderMap[serviceId]
-	serviceRequester, requesterOk := serviceRequesterMap[serviceId]
+	serviceProvider, providerOk := serviceProviderMap[serviceID]
+	serviceRequester, requesterOk := serviceRequesterMap[serviceID]
 
 	if !providerOk && !requesterOk {
 		wirteError(w, -4, errors.New("This service is not registered"))
@@ -435,7 +443,7 @@ func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 		err := bcrypt.CompareHashAndPassword([]byte(serviceProvider.ServiceTokenEncode), []byte(serviceToken))
 
 		if err == nil {
-			delete(serviceProviderMap, serviceId)
+			delete(serviceProviderMap, serviceID)
 			wirteBody(w, 1, "This service has been successfully unregistered")
 			return
 		}
@@ -445,7 +453,7 @@ func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 		err := bcrypt.CompareHashAndPassword([]byte(serviceRequester.ServiceTokenEncode), []byte(serviceToken))
 
 		if err == nil {
-			delete(serviceRequesterMap, serviceId)
+			delete(serviceRequesterMap, serviceID)
 			wirteBody(w, 1, "This service has been successfully unregistered")
 			return
 		}
@@ -457,38 +465,36 @@ func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
 func updateUserTokenTime(authorizationInfo AuthorizationInfo) {
 	timestamp := time.Now().Unix()
 	authorizationInfo.TokenUpdateTime = timestamp
-	authorizationInfo.TokenExpireTime = timestamp + TIMEOUT_TOKEN_EXPIRE
-	authorizationInfo.TokenDeleteTime = timestamp + TIMEOUT_TOKEN_EXPIRE + TIMEOUT_TOKEN_DELETE
+	authorizationInfo.TokenExpireTime = timestamp + timeoutTokenExpire
+	authorizationInfo.TokenDeleteTime = timestamp + timeoutTokenExpire + timeoutTokenDelete
 }
 
 func genAuthCodeAndToken(userName string, serviceProvider ServiceInfo, serviceRequester ServiceInfo) (string, string, string, error) {
 	UUID := genUUID()
 
 	h := sha256.New()
-	h.Write([]byte(UUID.String() + "-" + userName + "-" + serviceProvider.ServiceId + "-" + serviceRequester.ServiceId))
+	h.Write([]byte(UUID.String() + "-" + userName + "-" + serviceProvider.ServiceID + "-" + serviceRequester.ServiceID))
 	token := hex.EncodeToString(h.Sum(nil))
 	encodeToken, berr := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
 
 	if berr != nil {
 		return "", "", "", errors.New("generate token has failure: " + userName)
-	} else {
-		return genAuthCode(), token, string(encodeToken), nil
 	}
+	return genAuthCode(), token, string(encodeToken), nil
 }
 
-func genServiceToken(serviceId string) (string, string, error) {
+func genServiceToken(serviceID string) (string, string, error) {
 	UUID := genUUID().String()
 
 	h := sha256.New()
-	h.Write([]byte(UUID + "-" + serviceId))
+	h.Write([]byte(UUID + "-" + serviceID))
 	token := hex.EncodeToString(h.Sum(nil))
 	encodeToken, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
 
 	if err != nil {
-		return "", "", errors.New("generate token has failure: " + serviceId)
-	} else {
-		return token, string(encodeToken), nil
+		return "", "", errors.New("generate token has failure: " + serviceID)
 	}
+	return token, string(encodeToken), nil
 }
 
 func genAuthCode() string {
@@ -528,25 +534,25 @@ func genRandCode(n int, dict string) string {
 }
 
 func genUUID() uuid.UUID {
-	_UUID, uerr := uuid.NewRandom()
+	UUID, uerr := uuid.NewRandom()
 
 	if uerr != nil {
-		_UUID = uuid.New()
+		UUID = uuid.New()
 	}
 
-	return _UUID
+	return UUID
 }
 
 func sendAuthorizationEmail(authorizationCode string, authorizationInfo AuthorizationInfo, userToken string) {
 	emailCode := genUUID().String()
 
-	grantUrl := "http://" + ServerDomain + "/authorization/grant?code=" + emailCode
-	denyUrl := "http://" + ServerDomain + "/authorization/deny?code=" + emailCode
+	grantURL := "http://" + serverDomain + "/authorization/grant?code=" + emailCode
+	denyURL := "http://" + serverDomain + "/authorization/deny?code=" + emailCode
 
-	serviceProvider, serviceProviderIdOk := serviceProviderMap[authorizationInfo.ServiceProviderId]
-	serviceRequester, serviceRequesterIdOk := serviceRequesterMap[authorizationInfo.ServiceRequesterId]
+	serviceProvider, serviceProviderIDOk := serviceProviderMap[authorizationInfo.ServiceProviderID]
+	serviceRequester, serviceRequesterIDOk := serviceRequesterMap[authorizationInfo.ServiceRequesterID]
 
-	if !serviceProviderIdOk || !serviceRequesterIdOk {
+	if !serviceProviderIDOk || !serviceRequesterIDOk {
 		fmt.Println("Send authorization email failure and emailCode is", authorizationCode)
 		return
 	}
@@ -567,17 +573,17 @@ func sendAuthorizationEmail(authorizationCode string, authorizationInfo Authoriz
 	body := "hi, " + callName +
 		":<p>允许" +
 		serviceRequester.ServiceName +
-		"(" + serviceRequester.ServiceId + ")" +
+		"(" + serviceRequester.ServiceID + ")" +
 		"访问您的" + serviceProvider.ServiceName +
-		"(" + serviceProvider.ServiceId + ")" + "服务吗<p>" +
+		"(" + serviceProvider.ServiceID + ")" + "服务吗<p>" +
 		"如果允许访问，请点击<p>" +
-		"<a href=\"" + grantUrl + "\">" + "允许</a><p>" +
+		"<a href=\"" + grantURL + "\">" + "允许</a><p>" +
 		"如果不允许访问，请点击<p>" +
-		"<a href=\"" + denyUrl + "\">" + "拒绝</a><p>" +
+		"<a href=\"" + denyURL + "\">" + "拒绝</a><p>" +
 		"允许之后可以选择拒绝，拒绝之后无法选择允许，请周知。<p>请勿回复本邮件，谢谢<p>" +
 		"<div style=\"text-align: right\">whoam<p>Asia/Shanghai " + callTime + "</p></div>"
 
-	fmt.Println("Do you allow", serviceRequester.ServiceId, "to access", serviceProvider.ServiceId)
+	fmt.Println("Do you allow", serviceRequester.ServiceID, "to access", serviceProvider.ServiceID)
 
 	err := SendMail(to, subject, body)
 	if err != nil {
@@ -589,12 +595,12 @@ func sendAuthorizationEmail(authorizationCode string, authorizationInfo Authoriz
 }
 
 func wirteResult(w http.ResponseWriter, code int, data interface{}) error {
-	resultJson, err := json.Marshal(Result{code, data})
+	resultJSON, err := json.Marshal(Result{code, data})
 	if err != nil {
 		return err
 	}
 
-	wirteResponse(w, string(resultJson))
+	wirteResponse(w, string(resultJSON))
 
 	return nil
 }
@@ -603,11 +609,11 @@ func wirteResult(w http.ResponseWriter, code int, data interface{}) error {
 func wirteError(w http.ResponseWriter, code int, err error) {
 	fmt.Println(code, ",", err)
 
-	errJson, err := json.Marshal(Result{code, err.Error()})
+	errJSON, err := json.Marshal(Result{code, err.Error()})
 	if err != nil {
 		wirteResponse(w, "{\"code\": "+strconv.Itoa(code)+",\"data\": \""+err.Error()+"\"}")
 	} else {
-		wirteResponse(w, string(errJson))
+		wirteResponse(w, string(errJSON))
 	}
 }
 
@@ -625,8 +631,8 @@ func wirteBody(w http.ResponseWriter, code int, data interface{}) {
 	}
 }
 
-var ServerPort int
-var ServerDomain string
+var serverPort int
+var serverDomain string
 
 func init() {
 	ip, err := ExternalIP()
@@ -636,8 +642,8 @@ func init() {
 
 	port := 8030
 
-	flag.IntVar(&ServerPort, "p", port, "Authorization server port")
-	flag.StringVar(&ServerDomain, "h", ip+":"+strconv.Itoa(port), "Authorization server domain")
+	flag.IntVar(&serverPort, "p", port, "Authorization server port")
+	flag.StringVar(&serverDomain, "h", ip+":"+strconv.Itoa(port), "Authorization server domain")
 }
 
 func main() {
@@ -645,12 +651,12 @@ func main() {
 	flag.Usage()
 	time.FixedZone("CST", 8*3600)
 
-	if ServerDomain == "" {
+	if serverDomain == "" {
 		fmt.Println("ServerDomain is empty")
 		os.Exit(-1)
 	}
 
-	fmt.Println("ServerPort: ", ServerPort)
+	fmt.Println("ServerPort: ", serverPort)
 
 	SetupMailCredentials("Enter e-mail username: ", "Enter e-mail password: ")
 
@@ -669,6 +675,6 @@ func main() {
 	http.HandleFunc("/authorization/state", AuthorizationStateHandler)
 	http.HandleFunc("/serice/register", ServiceRegiesterHandler)
 	http.HandleFunc("/serice/unregister", ServiceUnRegiesterHandler)
-	err := http.ListenAndServe("0.0.0.0:"+strconv.Itoa(ServerPort), nil)
+	err := http.ListenAndServe("0.0.0.0:"+strconv.Itoa(serverPort), nil)
 	fmt.Println(err)
 }

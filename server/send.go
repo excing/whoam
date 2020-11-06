@@ -58,7 +58,7 @@ func plainAuth(identity, username, password string,
 }
 
 func init() {
-	flag.StringVar(&proxyAddress, "proxy", "", "Send mail (SMTP) server proxy address")
+	flag.StringVar(&proxyAddress, "proxy", "127.0.0.1:1088", "Send mail (SMTP) server proxy address")
 	flag.StringVar(&smtpAddress, "smtp", "smtp.gmail.com:587", "Send mail (SMTP) server address")
 }
 
