@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/websocket"
 
 	"github.com/google/uuid"
 )
@@ -86,11 +85,6 @@ var serviceMap map[string]ServiceInfo
 
 // 请求授权邮件列表
 var authorizationEmailMap map[string]string
-
-// AuthorizationRequestAsyncHandler websocket
-func AuthorizationRequestAsyncHandler(ws *websocket.Conn) {
-
-}
 
 // AuthorizationRequestHandler /authorization/request?username=&providerId=&requesterId=
 func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
@@ -597,7 +591,6 @@ func main() {
 	serviceMap = make(map[string]ServiceInfo)
 	authorizationEmailMap = make(map[string]string)
 
-	http.Handle("/ws/authorization/request", websocket.Handler(AuthorizationRequestAsyncHandler))
 	http.HandleFunc("/authorization/request", AuthorizationRequestHandler)
 	http.HandleFunc("/authorization/grant", AuthorizationGrantHandler)
 	http.HandleFunc("/authorization/deny", AuthorizationDenyHandler)
