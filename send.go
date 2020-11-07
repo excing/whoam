@@ -39,7 +39,7 @@ func (a *_PlainAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 }
 
 // Next
-func (a *_PlainAuth) Next(from_server []byte, more bool) ([]byte, error) {
+func (a *_PlainAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
 		// We've already sent everything.
 		return nil, errors.New("unexpected server challenge")
