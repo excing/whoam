@@ -16,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/gorilla/schema"
 )
 
 // KEYS code 生成字典
@@ -79,15 +80,15 @@ var serviceMap map[string]ServiceInfo
 // 请求授权邮件列表
 var authorizationEmailMap map[string]string
 
+var decoder = schema.NewDecoder()
+
 func inout(handle func(p *Context) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		proxy := &Context{c}
 
 		proxy = proxy.Any()
 
-		err := handle(proxy)
-
-		fmt.Println(err)
+		handle(proxy)
 	}
 }
 
@@ -519,7 +520,7 @@ func main() {
 
 	fmt.Println("ServerPort: ", serverPort)
 
-	SetupMailCredentials("Enter e-mail username: ", "Enter e-mail password: ")
+	// SetupMailCredentials("Enter e-mail username: ", "Enter e-mail password: ")
 
 	fmt.Println("Whoam is working")
 
@@ -531,6 +532,9 @@ func main() {
 	router.GET("/", func(c *gin.Context) {})
 
 	v1 := router.Group("/v1")
+	v1.POST("/user/login", inout(PostUserLogin))
+	v1.POST("/user/auth", inout(PostUserAuth))
+
 	v1.POST("/servicer", inout(PostServicer))
 	v1.DELETE("/servicer", inout(DeleteServicer))
 
@@ -541,4 +545,37 @@ func main() {
 	v1.GET("/auth/state", inout(GetAuthState))
 
 	router.Run(":" + strconv.Itoa(serverPort))
+}
+
+// PostUserAuth 用户登录授权验证
+func PostUserAuth(c *Context) error {
+	err := c.Request.ParseForm()
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	type User struct {
+		Email string `schema:"email,required"`
+		Token string `schema:"token"`
+		Code  string
+	}
+
+	var user User
+	err = decoder.Decode(&user, c.Request.PostForm)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	return c.Ok(user)
+}
+
+// PostUserLogin 用户登录
+func PostUserLogin(c *Context) error {
+	email := c.PostForm("email")
+
+	if "" == email {
+		return c.BadRequest("email is empty")
+	}
+
+	return c.Ok(email)
 }
