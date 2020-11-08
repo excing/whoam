@@ -3,12 +3,10 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -16,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -71,12 +70,6 @@ type AuthorizationInfo struct {
 	TokenDeleteTime int64
 }
 
-// Result 返回消息结构
-type Result struct {
-	Code int         `json:"code"`
-	Data interface{} `json:"data"`
-}
-
 // 授权请求列表. key 为 authorizationCode, value 为用户 Token 的用户信息, 包含授权状态
 var authorizationMap map[string]AuthorizationInfo
 
@@ -86,43 +79,113 @@ var serviceMap map[string]ServiceInfo
 // 请求授权邮件列表
 var authorizationEmailMap map[string]string
 
-// AuthorizationRequestHandler /authorization/request?username=&providerId=&requesterId=
-func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
-	userName := r.PostFormValue("username")
-	serviceProviderID := r.PostFormValue("providerId")
-	serviceRequesterID := r.PostFormValue("requesterId")
+func inout(handle func(p *Context) error) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		proxy := &Context{c}
+
+		proxy = proxy.Any()
+
+		err := handle(proxy)
+
+		fmt.Println(err)
+	}
+}
+
+// PostServicer 提交服务注册
+func PostServicer(c *Context) error {
+	serviceID := c.PostForm("serviceId")
+	serviceName := c.PostForm("serviceName")
+	serviceDesc := c.PostForm("serviceDesc")
+
+	if "" == serviceID {
+		return c.BadRequest("serviceId is empty")
+	} else if "" == serviceName {
+		return c.BadRequest("serviceName is empty")
+	}
+
+	var providerRegisterResult, requesterRegisterResult = false, false
+
+	registerResult := make(map[string]string)
+
+	if _, ok := serviceMap[serviceID]; !ok {
+		token, encodeToken, err := genServiceToken(serviceID)
+
+		if err != nil {
+			return c.InternalServerError("registration failed: %s", err.Error())
+		}
+
+		serviceMap[serviceID] = ServiceInfo{
+			serviceID,
+			serviceName,
+			serviceDesc,
+			encodeToken,
+		}
+		registerResult["providerToken"] = token
+
+		providerRegisterResult = true
+	}
+
+	if providerRegisterResult || requesterRegisterResult {
+		return c.Ok(registerResult)
+	}
+	return c.Created("This service is already registered")
+}
+
+// DeleteServicer 注销服务
+func DeleteServicer(c *Context) error {
+	serviceID := c.PostForm("serviceId")
+	serviceToken := c.PostForm("serviceToken")
+
+	if "" == serviceID {
+		return c.BadRequest("serviceId is empty")
+	} else if "" == serviceToken {
+		return c.BadRequest("serviceToken is empty")
+	}
+
+	serviceProvider, providerOk := serviceMap[serviceID]
+
+	if providerOk {
+		err := bcrypt.CompareHashAndPassword([]byte(serviceProvider.ServiceTokenEncode), []byte(serviceToken))
+
+		if err == nil {
+			delete(serviceMap, serviceID)
+			return c.NoContent()
+		}
+	}
+
+	return c.Unauthorized("serviceToken is an invalid value")
+}
+
+// PostAuthRequest 提交一个授权请求
+func PostAuthRequest(c *Context) error {
+
+	userName := c.PostForm("username")
+	serviceProviderID := c.PostForm("providerId")
+	serviceRequesterID := c.PostForm("requesterId")
 
 	if "" == userName {
-		wirteError(w, -1, errors.New("username is empty"))
-		return
+		return c.BadRequest("username is empty")
 	} else if "" == serviceProviderID {
-		wirteError(w, -2, errors.New("providerId is empty"))
-		return
+		return c.BadRequest("providerId is empty")
 	} else if "" == serviceRequesterID {
-		wirteError(w, -3, errors.New("requesterId is empty"))
-		return
+		return c.BadRequest("requesterId is empty")
 	} else if serviceProviderID == serviceRequesterID {
-		wirteError(w, -6, errors.New("providerId equals requesterId"))
-		return
+		return c.BadRequest("providerId equals requesterId")
 	}
 
 	serviceProvider, serviceProviderIDOk := serviceMap[serviceProviderID]
 	serviceRequester, serviceRequesterIDOk := serviceMap[serviceRequesterID]
 
 	if !serviceProviderIDOk {
-		wirteError(w, -4, errors.New("Can not find the service pointed to by providerId"))
-		return
+		return c.Forbidden("providerId does not exist")
 	} else if !serviceRequesterIDOk {
-		wirteError(w, -5, errors.New("Can not find the service pointed to by requesterId"))
-		return
+		return c.Forbidden("requesterId does not exist")
 	}
 
 	authorizationCode, userToken, userTokenEncode, err := genAuthCodeAndToken(userName, serviceProvider, serviceRequester)
 
 	if err != nil {
-		fmt.Println("Request authorization failed: ", userName, serviceProviderID, serviceRequesterID)
-		wirteError(w, -7, errors.New("Request authorization failed"))
-		return
+		return c.InternalServerError("Authorization failed: %s", err.Error())
 	}
 
 	timestamp := time.Now().Unix()
@@ -145,30 +208,27 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	data["authCode"] = authorizationCode
 	data["userToken"] = userToken
 
-	wirteBody(w, 1, data)
+	return c.Ok(data)
 }
 
-// AuthorizationGrantHandler 允许授权
-func AuthorizationGrantHandler(w http.ResponseWriter, r *http.Request) {
-	code := r.FormValue("code")
+// GrantAuthRequest 同意一个授权请求
+func GrantAuthRequest(c *Context) error {
+	code, _ := c.Params.Get("code")
 
 	if "" == code {
-		wirteError(w, -1, errors.New("code is empty"))
-		return
+		return c.BadRequest("code is empty")
 	}
 
 	authorizationCode, ok := authorizationEmailMap[code]
 
 	if !ok {
-		wirteError(w, -2, errors.New("code is an invalid value"))
-		return
+		return c.NotFound("code is an invalid value")
 	}
 
 	authorizationInfo, ok := authorizationMap[authorizationCode]
 
 	if !ok {
-		wirteError(w, -3, errors.New("code is an invalid value"))
-		return
+		return c.NotFound("code is an invalid value")
 	}
 
 	fmt.Println("Grant Authorization", code, authorizationCode)
@@ -179,23 +239,21 @@ func AuthorizationGrantHandler(w http.ResponseWriter, r *http.Request) {
 
 	updateUserTokenTime(authorizationInfo)
 
-	wirteBody(w, 1, "Authorized success")
+	return c.NoContent()
 }
 
-// AuthorizationDenyHandler 拒绝授权
-func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
-	code := r.FormValue("code")
+// DenyAuthRequest 拒绝一个授权请求
+func DenyAuthRequest(c *Context) error {
+	code, _ := c.Params.Get("code")
 
 	if "" == code {
-		wirteError(w, -1, errors.New("code is empty"))
-		return
+		return c.BadRequest("code is empty")
 	}
 
 	authorizationCode, ok := authorizationEmailMap[code]
 
 	if !ok {
-		wirteError(w, -2, errors.New("code is an invalid value"))
-		return
+		return c.NotFound("code is an invalid value")
 	}
 
 	delete(authorizationEmailMap, code)
@@ -203,8 +261,7 @@ func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
 	authorizationInfo, ok := authorizationMap[authorizationCode]
 
 	if !ok {
-		wirteError(w, -3, errors.New("code is an invalid value"))
-		return
+		return c.NotFound("code is an invalid value")
 	}
 
 	fmt.Println("Deny Authorization", code, authorizationCode)
@@ -215,34 +272,30 @@ func AuthorizationDenyHandler(w http.ResponseWriter, r *http.Request) {
 
 	updateUserTokenTime(authorizationInfo)
 
-	wirteBody(w, 1, "Denied authorization")
+	return c.NoContent()
 }
 
-// AuthorizationUpdateHandler 刷新授权状态
-func AuthorizationUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	authorizationCode := r.PostFormValue("authCode")
-	userToken := r.PostFormValue("userToken")
+// UpgradeAuthRequest 刷新一个授权令牌
+func UpgradeAuthRequest(c *Context) error {
+	authorizationCode := c.PostForm("authCode")
+	userToken := c.PostForm("userToken")
 
 	if "" == authorizationCode {
-		wirteError(w, -1, errors.New("authCode is empty"))
-		return
+		return c.BadRequest("authCode is empty")
 	} else if "" == userToken {
-		wirteError(w, -2, errors.New("userToken is empty"))
-		return
+		return c.BadRequest("userToken is empty")
 	}
 
 	authorizationInfo, ok := authorizationMap[authorizationCode]
 
 	if !ok {
-		wirteError(w, -3, errors.New("authCode is an invalid value"))
-		return
+		return c.NotFound("authCode is an invalid value")
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(authorizationInfo.UserTokenEncode), []byte(userToken))
 
 	if err != nil {
-		wirteError(w, -4, errors.New("userToken is an invalid value"))
-		return
+		return c.Unauthorized("userToken is an invalid value")
 	}
 
 	timestamp := time.Now().Unix()
@@ -251,47 +304,41 @@ func AuthorizationUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		if authorizationInfo.TokenDeleteTime < timestamp {
 			delete(authorizationMap, authorizationCode)
 		}
-		wirteError(w, -5, errors.New("userToken has expired"))
-		return
+		return c.Unauthorized("userToken has expired")
 	}
 
 	authorizationStatus := authorizationInfo.AuthorizationStatus
 
 	if statusAuthorizationUserDeny == authorizationStatus {
-		wirteError(w, -6, errors.New("The user denied access"))
-		return
+		return c.Unauthorized("The user denied access")
 	}
 
 	updateUserTokenTime(authorizationInfo)
 
-	wirteBody(w, 1, "update userToken successfully")
+	return c.NoContent()
 }
 
-// AuthorizationStateHandler 获取授权状态
-func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
-	authorizationCode := r.PostFormValue("authCode")
-	userToken := r.PostFormValue("userToken")
+// GetAuthState 获取授权状态
+func GetAuthState(c *Context) error {
+	authorizationCode := c.PostForm("authCode")
+	userToken := c.PostForm("userToken")
 
 	if "" == authorizationCode {
-		wirteError(w, -1, errors.New("authCode is empty"))
-		return
+		return c.BadRequest("authCode is empty")
 	} else if "" == userToken {
-		wirteError(w, -2, errors.New("userToken is empty"))
-		return
+		return c.BadRequest("userToken is empty")
 	}
 
 	authorizationInfo, ok := authorizationMap[authorizationCode]
 
 	if !ok {
-		wirteError(w, -3, errors.New("authCode is an invalid value"))
-		return
+		return c.NotFound("authCode is an invalid value")
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(authorizationInfo.UserTokenEncode), []byte(userToken))
 
 	if err != nil {
-		wirteError(w, -4, errors.New("userToken is an invalid value"))
-		return
+		return c.Unauthorized("userToken is an invalid value")
 	}
 
 	timestamp := time.Now().Unix()
@@ -305,86 +352,12 @@ func AuthorizationStateHandler(w http.ResponseWriter, r *http.Request) {
 		if authorizationInfo.TokenDeleteTime < timestamp {
 			delete(authorizationMap, authorizationCode)
 		}
-		wirteError(w, -5, errors.New("userToken has expired"))
-		return
+		return c.Unauthorized("userToken has expired")
 	}
 
 	authorizationStatus := authorizationInfo.AuthorizationStatus
 
-	wirteBody(w, 1, map[string]int{"authStatus": authorizationStatus})
-}
-
-// ServiceRegiesterHandler 注册服务
-func ServiceRegiesterHandler(w http.ResponseWriter, r *http.Request) {
-	serviceID := r.PostFormValue("serviceId")
-	serviceName := r.PostFormValue("serviceName")
-	serviceDesc := r.PostFormValue("serviceDesc")
-
-	if "" == serviceID {
-		wirteError(w, -1, errors.New("serviceId is empty"))
-		return
-	} else if "" == serviceName {
-		wirteError(w, -2, errors.New("serviceName is empty"))
-		return
-	}
-
-	var providerRegisterResult, requesterRegisterResult = false, false
-
-	registerResult := make(map[string]string)
-
-	if _, ok := serviceMap[serviceID]; !ok {
-		token, encodeToken, err := genServiceToken(serviceID)
-
-		if err != nil {
-			fmt.Println("Provider", err)
-			wirteError(w, -7, errors.New("This service failed to register"))
-			return
-		}
-
-		serviceMap[serviceID] = ServiceInfo{
-			serviceID,
-			serviceName,
-			serviceDesc,
-			encodeToken,
-		}
-		registerResult["providerToken"] = token
-
-		providerRegisterResult = true
-	}
-
-	if providerRegisterResult || requesterRegisterResult {
-		wirteBody(w, 1, registerResult)
-	} else {
-		wirteError(w, -6, errors.New("This service is already registered"))
-	}
-}
-
-// ServiceUnRegiesterHandler 注销服务
-func ServiceUnRegiesterHandler(w http.ResponseWriter, r *http.Request) {
-	serviceID := r.PostFormValue("serviceId")
-	serviceToken := r.PostFormValue("serviceToken")
-
-	if "" == serviceID {
-		wirteError(w, -1, errors.New("serviceId is empty"))
-		return
-	} else if "" == serviceToken {
-		wirteError(w, -2, errors.New("serviceToken is empty"))
-		return
-	}
-
-	serviceProvider, providerOk := serviceMap[serviceID]
-
-	if providerOk {
-		err := bcrypt.CompareHashAndPassword([]byte(serviceProvider.ServiceTokenEncode), []byte(serviceToken))
-
-		if err == nil {
-			delete(serviceMap, serviceID)
-			wirteBody(w, 1, "This service has been successfully unregistered")
-			return
-		}
-	}
-
-	wirteError(w, -6, errors.New("serviceToken is an invalid value"))
+	return c.Ok(map[string]int{"authStatus": authorizationStatus})
 }
 
 func updateUserTokenTime(authorizationInfo AuthorizationInfo) {
@@ -471,8 +444,8 @@ func genUUID() uuid.UUID {
 func sendAuthorizationEmail(authorizationCode string, authorizationInfo AuthorizationInfo, userToken string) {
 	emailCode := genUUID().String()
 
-	grantURL := "http://" + serverDomain + "/authorization/grant?code=" + emailCode
-	denyURL := "http://" + serverDomain + "/authorization/deny?code=" + emailCode
+	grantURL := "http://" + serverDomain + "/v1/auth/grant/" + emailCode
+	denyURL := "http://" + serverDomain + "/v1/auth/deny/" + emailCode
 
 	serviceProvider, serviceProviderIDOk := serviceMap[authorizationInfo.ServiceProviderID]
 	serviceRequester, serviceRequesterIDOk := serviceMap[authorizationInfo.ServiceRequesterID]
@@ -519,43 +492,6 @@ func sendAuthorizationEmail(authorizationCode string, authorizationInfo Authoriz
 	}
 }
 
-func wirteResult(w http.ResponseWriter, code int, data interface{}) error {
-	resultJSON, err := json.Marshal(Result{code, data})
-	if err != nil {
-		return err
-	}
-
-	wirteResponse(w, string(resultJSON))
-
-	return nil
-}
-
-// 统一错误输出接口
-func wirteError(w http.ResponseWriter, code int, err error) {
-	fmt.Println(code, ",", err)
-
-	errJSON, err := json.Marshal(Result{code, err.Error()})
-	if err != nil {
-		wirteResponse(w, "{\"code\": "+strconv.Itoa(code)+",\"data\": \""+err.Error()+"\"}")
-	} else {
-		wirteResponse(w, string(errJSON))
-	}
-}
-
-func wirteResponse(w http.ResponseWriter, resp string) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")             //允许访问所有域
-	w.Header().Add("Access-Control-Allow-Headers", "Content-Type") //header的类型
-	w.Header().Add("Content-Type", "Application/json")             //header的类型
-	w.Write([]byte(resp))
-}
-
-func wirteBody(w http.ResponseWriter, code int, data interface{}) {
-	err := wirteResult(w, code, data)
-	if err != nil {
-		wirteError(w, -100, err)
-	}
-}
-
 var serverPort int
 var serverDomain string
 
@@ -591,13 +527,18 @@ func main() {
 	serviceMap = make(map[string]ServiceInfo)
 	authorizationEmailMap = make(map[string]string)
 
-	http.HandleFunc("/authorization/request", AuthorizationRequestHandler)
-	http.HandleFunc("/authorization/grant", AuthorizationGrantHandler)
-	http.HandleFunc("/authorization/deny", AuthorizationDenyHandler)
-	http.HandleFunc("/authorization/update", AuthorizationUpdateHandler)
-	http.HandleFunc("/authorization/state", AuthorizationStateHandler)
-	http.HandleFunc("/serice/register", ServiceRegiesterHandler)
-	http.HandleFunc("/serice/unregister", ServiceUnRegiesterHandler)
-	err := http.ListenAndServe("0.0.0.0:"+strconv.Itoa(serverPort), nil)
-	fmt.Println(err)
+	router := gin.Default()
+	router.GET("/", func(c *gin.Context) {})
+
+	v1 := router.Group("/v1")
+	v1.POST("/servicer", inout(PostServicer))
+	v1.DELETE("/servicer", inout(DeleteServicer))
+
+	v1.POST("/auth/request", inout(PostAuthRequest))
+	v1.GET("/auth/grant/:code", inout(GrantAuthRequest))
+	v1.GET("/auth/deny/:code", inout(DenyAuthRequest))
+	v1.POST("/auth/upgrade", inout(UpgradeAuthRequest))
+	v1.GET("/auth/state", inout(GetAuthState))
+
+	router.Run(":" + strconv.Itoa(serverPort))
 }
