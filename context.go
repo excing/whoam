@@ -39,56 +39,73 @@ func (p *Context) Any() *Context {
 }
 
 // BadRequest writes a BadRequest code(400) with the given string into the response body.
+// Bad input parameter. Error message should indicate which one and why.
 func (p *Context) BadRequest(format string, values ...interface{}) error {
 	return p.Render(http.StatusBadRequest, render.String{Format: format, Data: values})
 }
 
 // Unauthorized writes a Unauthorized request code(401) request with the given string into the response body.
+// The client passed in the invalid Auth token. Client should refresh the token and then try again.
 func (p *Context) Unauthorized(format string, values ...interface{}) error {
 	return p.Render(http.StatusUnauthorized, render.String{Format: format, Data: values})
 }
 
 // Forbidden writes a Forbidden request code(403) with the given string into the response body.
+// * Customer doesn’t exist.
+// * Application not registered.
+// * Application try to access to properties not belong to an App.
+// * Application try to trash/purge root node.
+// * Application try to update contentProperties.
+// * Operation is blocked (for third-party apps).
+// * Customer account over quota.
 func (p *Context) Forbidden(format string, values ...interface{}) error {
 	return p.Render(http.StatusForbidden, render.String{Format: format, Data: values})
 }
 
 // NotFound writes a NotFound request code(404) with the given string into the response body.
+// Resource not found.
 func (p *Context) NotFound(format string, values ...interface{}) error {
 	return p.Render(http.StatusNotFound, render.String{Format: format, Data: values})
 }
 
 // MethodNotAllowed writes a MethodNotAllowed request code(405) with the given string into the response body.
+// The resource doesn't support the specified HTTP verb.
 func (p *Context) MethodNotAllowed(format string, values ...interface{}) error {
 	return p.Render(http.StatusMethodNotAllowed, render.String{Format: format, Data: values})
 }
 
 // Conflict writes a Conflict request code(409) with the given string into the response body.
+// Conflict
 func (p *Context) Conflict(format string, values ...interface{}) error {
 	return p.Render(http.StatusConflict, render.String{Format: format, Data: values})
 }
 
 // LengthRequired writes a LengthRequired request code(411) with the given string into the response body.
+// The Content-Length header was not specified.
 func (p *Context) LengthRequired(format string, values ...interface{}) error {
 	return p.Render(http.StatusLengthRequired, render.String{Format: format, Data: values})
 }
 
 // PreconditionFailed writes a PreconditionFailed request code(412) with the given string into the response body.
+// Precondition failed.
 func (p *Context) PreconditionFailed(format string, values ...interface{}) error {
 	return p.Render(http.StatusPreconditionFailed, render.String{Format: format, Data: values})
 }
 
 // TooManyRequests writes a TooManyRequests request code(429) with the given string into the response body.
+// Too many request for rate limiting.
 func (p *Context) TooManyRequests(format string, values ...interface{}) error {
 	return p.Render(http.StatusTooManyRequests, render.String{Format: format, Data: values})
 }
 
 // InternalServerError writes a InternalServerError request code(500) with the given string into the response body.
+// Servers are not working as expected. The request is probably valid but needs to be requested again later.
 func (p *Context) InternalServerError(format string, values ...interface{}) error {
 	return p.Render(http.StatusInternalServerError, render.String{Format: format, Data: values})
 }
 
 // ServiceUnavailable writes a ServiceUnavailable request code(503) with the given string into the response body.
+// Service Unavailable.
 func (p *Context) ServiceUnavailable(format string, values ...interface{}) error {
 	return p.Render(http.StatusServiceUnavailable, render.String{Format: format, Data: values})
 }
@@ -100,11 +117,14 @@ func (p *Context) Ok(obj interface{}) error {
 }
 
 // Created writes a Created request code(201) with the given string into the response body.
+// Indicates that request has succeeded and a new resource has been created as a result.
 func (p *Context) Created(format string, values ...interface{}) error {
 	return p.Render(http.StatusCreated, render.String{Format: format, Data: values})
 }
 
 // NoContent writes a NoContent request code(204) with the given string into the response body.
+// The server has fulfilled the request but does not need to return a response body.
+// The server may return the updated meta information.
 func (p *Context) NoContent() error {
 	p.Status(http.StatusNoContent)
 	render.String{}.WriteContentType(p.Writer)
