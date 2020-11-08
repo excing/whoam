@@ -1,3 +1,7 @@
+// Adopt the RESTful API design principle,
+// and the returned status code can be found at:
+// https://developer.amazon.com/zh/docs/amazon-drive/ad-restful-api-response-codes.html
+
 package main
 
 import (
