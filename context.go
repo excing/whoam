@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,6 +37,30 @@ func (p *Context) Any() *Context {
 	p.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 	p.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 	return p
+}
+
+// FormValue returns the form value of the specified key,
+// return error if the value does not exist or is empty
+func (p *Context) FormValue(key string) (string, error) {
+	if values, ok := p.GetPostFormArray(key); ok || "" == values[0] {
+		return values[0], nil
+	}
+	return "", errors.New(key + " is empty")
+}
+
+// ParseForm writes form content to dst,
+// return error if the content does not exist or is empty
+func (p *Context) ParseForm(dst interface{}) error {
+	err := p.Request.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	err = decoder.Decode(dst, p.Request.PostForm)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // BadRequest writes a BadRequest code(400) with the given string into the response body.
