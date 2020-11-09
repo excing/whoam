@@ -10,11 +10,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
+	"github.com/gorilla/schema"
 )
 
 // Context http response content
 type Context struct {
 	*gin.Context
+}
+
+var decoder = schema.NewDecoder()
+
+func inout(handle func(p *Context) error) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		proxy := &Context{c}
+
+		proxy = proxy.Any()
+
+		handle(proxy)
+	}
 }
 
 // Render writes the response headers and calls render.Render to render data.
