@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
+	"html/template"
 	"math/rand"
 	"os"
 	"strconv"
@@ -16,11 +18,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gorilla/schema"
 )
 
 // KEYS code 生成字典
-const KEYS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const KEYS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 // 授权状态：等待中
 const statusAuthorizationWaiting = 0
@@ -79,18 +80,6 @@ var serviceMap map[string]ServiceInfo
 
 // 请求授权邮件列表
 var authorizationEmailMap map[string]string
-
-var decoder = schema.NewDecoder()
-
-func inout(handle func(p *Context) error) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		proxy := &Context{c}
-
-		proxy = proxy.Any()
-
-		handle(proxy)
-	}
-}
 
 // PostServicer 提交服务注册
 func PostServicer(c *Context) error {
@@ -369,31 +358,36 @@ func updateUserTokenTime(authorizationInfo AuthorizationInfo) {
 }
 
 func genAuthCodeAndToken(userName string, serviceProvider ServiceInfo, serviceRequester ServiceInfo) (string, string, string, error) {
-	UUID := genUUID()
+	src := genUUID().String() + "-" + userName + "-" + serviceProvider.ServiceID + "-" + serviceRequester.ServiceID
 
-	h := sha256.New()
-	h.Write([]byte(UUID.String() + "-" + userName + "-" + serviceProvider.ServiceID + "-" + serviceRequester.ServiceID))
-	token := hex.EncodeToString(h.Sum(nil))
-	encodeToken, berr := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
+	token, encodeToken, err := Encry([]byte(src))
 
-	if berr != nil {
+	if err != nil {
 		return "", "", "", errors.New("generate token has failure: " + userName)
 	}
-	return genAuthCode(), token, string(encodeToken), nil
+	return genAuthCode(), string(token), string(encodeToken), nil
 }
 
 func genServiceToken(serviceID string) (string, string, error) {
-	UUID := genUUID().String()
+	src := genUUID().String() + "-" + serviceID
 
-	h := sha256.New()
-	h.Write([]byte(UUID + "-" + serviceID))
-	token := hex.EncodeToString(h.Sum(nil))
-	encodeToken, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
+	token, encodeToken, err := Encry([]byte(src))
 
 	if err != nil {
 		return "", "", errors.New("generate token has failure: " + serviceID)
 	}
-	return token, string(encodeToken), nil
+	return string(token), string(encodeToken), nil
+}
+
+// Encry 对 bytes 进行 sha256 编码，并对 sha256 编码进行随机盐加密
+func Encry(bytes []byte) ([]byte, []byte, error) {
+	h := sha256.New()
+	h.Write(bytes)
+	src := h.Sum(nil)
+	dst := make([]byte, hex.EncodedLen(len(src)))
+	hex.Encode(dst, src)
+	psd, err := bcrypt.GenerateFromPassword(dst, bcrypt.DefaultCost)
+	return dst, psd, err
 }
 
 func genAuthCode() string {
@@ -520,8 +514,6 @@ func main() {
 
 	fmt.Println("ServerPort: ", serverPort)
 
-	// SetupMailCredentials("Enter e-mail username: ", "Enter e-mail password: ")
-
 	fmt.Println("Whoam is working")
 
 	authorizationMap = make(map[string]AuthorizationInfo)
@@ -549,19 +541,14 @@ func main() {
 
 // PostUserAuth 用户登录授权验证
 func PostUserAuth(c *Context) error {
-	err := c.Request.ParseForm()
-	if err != nil {
-		return c.BadRequest(err.Error())
-	}
-
 	type User struct {
 		Email string `schema:"email,required"`
-		Token string `schema:"token"`
+		Token string
 		Code  string
 	}
 
 	var user User
-	err = decoder.Decode(&user, c.Request.PostForm)
+	err := c.ParseForm(&user)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
@@ -571,11 +558,31 @@ func PostUserAuth(c *Context) error {
 
 // PostUserLogin 用户登录
 func PostUserLogin(c *Context) error {
-	email := c.PostForm("email")
+	email, err := c.FormValue("email")
 
-	if "" == email {
-		return c.BadRequest("email is empty")
+	if err != nil {
+		return c.BadRequest(err.Error())
 	}
 
-	return c.Ok(email)
+	tpl := `<h3>你好</h3><p>感谢使用Whoam</p><p>验证码：{{.}}</p>`
+	code := genRandCode(4, KEYS[0:36])
+	t, err := template.New("login").Parse(tpl)
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	var buf bytes.Buffer
+	err = t.Execute(&buf, code)
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	// ts := time.Now().Format("20060102150405999999")
+
+	fmt.Println(email, buf.String())
+	// err = SendMail(email, "【WHOAM】登录Whoam", buf.String())
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+	return c.Ok("Sended")
 }
