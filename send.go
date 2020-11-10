@@ -17,7 +17,7 @@ func init() {
 // SendMail 发送短信
 func SendMail(to string, subject string, body string) error {
 	formData := url.Values{
-		"email":   {to},
+		"to":      {to},
 		"subject": {subject},
 		"body":    {body},
 	}
