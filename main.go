@@ -23,6 +23,18 @@ import (
 // KEYS code 生成字典
 const KEYS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
+const (
+	verificationTlp = `<body style="font-family: Roboto, sans-serif">
+  <p>Hello, Welcome to whoam. You are using Email Verification Code to login to <a href="https://whoam.xyz">WHOAM</a>
+  <p><big>Verification code: <b>{{ . }}</b>.</big>
+  <p>It's valid within <b>5 minutes.</b>
+  <p>If this isn't your own operating, please ignore this email.
+  <p>Please don't reply!
+    <hr>
+  <p>Thank you,<p style="margin: 0 auto; font-size: 1.5em;">The ThreeTenth team
+</body>`
+)
+
 // 授权状态：等待中
 const statusAuthorizationWaiting = 0
 
@@ -34,6 +46,8 @@ const statusAuthorizationUserDeny = -1
 
 const timeoutTokenExpire = 604800 // 授权有效期为 7 天
 const timeoutTokenDelete = 259200 // 授权失效后，保留 UserToken 3 天
+
+const timeoutUserVerification = 300 // 用户验证码有效时长
 
 // ServiceInfo 服务信息
 type ServiceInfo struct {
@@ -72,6 +86,31 @@ type AuthorizationInfo struct {
 	TokenDeleteTime int64
 }
 
+// UserVerification 用户登录验证信息
+type UserVerification struct {
+	Email     string `schema:"email,required"`
+	Code      string `schema:"code,required"`
+	Token     string `schema:"token,required"`
+	UntilTime int64  `schema:"-"`
+}
+
+func (user *UserVerification) verifica(dst *UserVerification) error {
+	if user.UntilTime < time.Now().Unix() {
+		return errors.New("Verification failed: code is expired")
+	}
+	if user.Code != dst.Code {
+		return errors.New("Verification failed: code is invalid")
+	}
+	if user.Code != dst.Code {
+		return errors.New("Verification failed: token is invalid")
+	}
+	if user.Email != dst.Email {
+		return errors.New("Verification failed: email is invalid")
+	}
+
+	return nil
+}
+
 // 授权请求列表. key 为 authorizationCode, value 为用户 Token 的用户信息, 包含授权状态
 var authorizationMap map[string]AuthorizationInfo
 
@@ -80,6 +119,9 @@ var serviceMap map[string]ServiceInfo
 
 // 请求授权邮件列表
 var authorizationEmailMap map[string]string
+
+// 用户登录验证信息
+var userVerificationMap map[string]UserVerification
 
 // PostServicer 提交服务注册
 func PostServicer(c *Context) error {
@@ -519,6 +561,7 @@ func main() {
 	authorizationMap = make(map[string]AuthorizationInfo)
 	serviceMap = make(map[string]ServiceInfo)
 	authorizationEmailMap = make(map[string]string)
+	userVerificationMap = make(map[string]UserVerification)
 
 	router := gin.Default()
 	router.GET("/", func(c *gin.Context) {})
@@ -541,19 +584,27 @@ func main() {
 
 // PostUserAuth 用户登录授权验证
 func PostUserAuth(c *Context) error {
-	type User struct {
-		Email string `schema:"email,required"`
-		Token string
-		Code  string
-	}
-
-	var user User
+	var user UserVerification
 	err := c.ParseForm(&user)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
-	return c.Ok(user)
+	userVerification, ok := userVerificationMap[user.Token]
+
+	if !ok {
+		return c.Unauthorized("Verification failed: token is invalid")
+	}
+
+	err = userVerification.verifica(&user)
+
+	if err != nil {
+		return c.Unauthorized(err.Error())
+	}
+
+	// todo 记录用户验证成功
+
+	return c.Ok("LOGIN SUCCESSED")
 }
 
 // PostUserLogin 用户登录
@@ -564,9 +615,8 @@ func PostUserLogin(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	tpl := `<h3>你好</h3><p>感谢使用Whoam</p><p>验证码：{{.}}</p>`
 	code := genRandCode(4, KEYS[0:36])
-	t, err := template.New("login").Parse(tpl)
+	t, err := template.New("login").Parse(verificationTlp)
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
@@ -577,12 +627,14 @@ func PostUserLogin(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	// ts := time.Now().Format("20060102150405999999")
-
-	fmt.Println(email, buf.String())
-	// err = SendMail(email, "【WHOAM】登录Whoam", buf.String())
+	err = SendMail(email, "Login WHOAM with verification code", buf.String())
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
-	return c.Ok("Sended")
+
+	token, _ := New64BitUUID()
+
+	userVerificationMap[token] = UserVerification{email, code, token, time.Now().Unix() + timeoutUserVerification}
+
+	return c.Ok(token)
 }
