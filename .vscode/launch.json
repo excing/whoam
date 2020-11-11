@@ -11,7 +11,9 @@
       "mode": "auto",
       "program": "${workspaceRoot}",
       "env": {},
-      "args": []
+      "args": [
+        "-ses", "https://ses.whoam.xyz"
+      ]
     }
   ]
 }
