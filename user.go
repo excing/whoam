@@ -14,7 +14,7 @@ const (
 	verificationTlp = `<body style="font-family: Roboto, sans-serif">
   <p>Hello, Welcome to whoam. You are using Email Verification Code to login to <a href="https://whoam.xyz">WHOAM</a>
   <p><big>Verification code: <b>{{ . }}</b>.</big>
-  <p>It's valid within <b>5 minutes.</b>
+  <p>It's valid within <b>15 minutes.</b>
   <p>If this isn't your own operating, please ignore this email.
   <p>Please don't reply!
     <hr>
@@ -22,7 +22,7 @@ const (
 </body>`
 )
 
-const timeoutUserVerification = 300 // 用户验证码有效时长
+const timeoutUserVerification = 900 // 用户验证码有效时长: 15分钟
 
 // UserVerification 用户登录验证信息
 type UserVerification struct {
