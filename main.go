@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -16,29 +14,23 @@ var serverDomain string
 func init() {
 	ip, err := ExternalIP()
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	port := 8030
 
 	flag.IntVar(&serverPort, "p", port, "Authorization server port")
 	flag.StringVar(&serverDomain, "h", ip+":"+strconv.Itoa(port), "Authorization server domain")
-}
-
-func main() {
 	flag.Parse()
 	flag.Usage()
 	time.FixedZone("CST", 8*3600)
 
 	if serverDomain == "" {
-		fmt.Println("ServerDomain is empty")
-		os.Exit(-1)
+		panic("ServerDomain is empty")
 	}
+}
 
-	fmt.Println("ServerPort: ", serverPort)
-
-	fmt.Println("Whoam is working", genRandCode(32, digits))
-
+func main() {
 	authorizationMap = make(map[string]AuthorizationInfo)
 	serviceMap = make(map[string]ServiceInfo)
 	authorizationEmailMap = make(map[string]string)
