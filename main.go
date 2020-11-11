@@ -21,6 +21,9 @@ func init() {
 
 	flag.IntVar(&serverPort, "p", port, "Authorization server port")
 	flag.StringVar(&serverDomain, "h", ip+":"+strconv.Itoa(port), "Authorization server domain")
+}
+
+func main() {
 	flag.Parse()
 	flag.Usage()
 	time.FixedZone("CST", 8*3600)
@@ -28,9 +31,7 @@ func init() {
 	if serverDomain == "" {
 		panic("ServerDomain is empty")
 	}
-}
 
-func main() {
 	authorizationMap = make(map[string]AuthorizationInfo)
 	serviceMap = make(map[string]ServiceInfo)
 	authorizationEmailMap = make(map[string]string)
