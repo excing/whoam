@@ -11,7 +11,7 @@ import (
 var sendMailServerDomain string
 
 func init() {
-	flag.StringVar(&sendMailServerDomain, "ses", "http://10.0.0.254:19825:", "Send mail server domain url")
+	flag.StringVar(&sendMailServerDomain, "ses", "", "Send mail server domain url")
 }
 
 // SendMail 发送短信
