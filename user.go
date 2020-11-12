@@ -32,6 +32,8 @@ type UserVerification struct {
 	UntilTime int64  `schema:"-"`
 }
 
+// Return verification failure information,
+// if returns nil, it means verification is successful
 func (user *UserVerification) verifica(dst *UserVerification) error {
 	if user.UntilTime < time.Now().Unix() {
 		return errors.New("Verification failed: code is expired")
