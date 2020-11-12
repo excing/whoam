@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"time"
+	"unsafe"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -43,14 +44,15 @@ const (
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
-var r = rand.NewSource(time.Now().UnixNano())
+var src = rand.NewSource(time.Now().UnixNano())
 
 // see: https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go?answertab=votes#tab-top
 func genRandCode(n int, dict string) string {
 	b := make([]byte, n)
-	for i, cache, remain := n-1, r.Int63(), letterIdxMax; i >= 0; {
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
 		if remain == 0 {
-			cache, remain = r.Int63(), letterIdxMax
+			cache, remain = src.Int63(), letterIdxMax
 		}
 		if idx := int(cache & letterIdxMask); idx < len(dict) {
 			b[i] = dict[idx]
@@ -60,7 +62,7 @@ func genRandCode(n int, dict string) string {
 		remain--
 	}
 
-	return string(b)
+	return *(*string)(unsafe.Pointer(&b))
 }
 
 func genUUID() uuid.UUID {
