@@ -7,16 +7,11 @@ import (
 	"net/url"
 )
 
-// SesServer Send mail server config
-type SesServer struct {
-	Ses string `flag:"Send mail server domain url"`
-}
-
-var ses SesServer
+// Send mail server domain
+var sesServer string
 
 func init() {
-	ses = SesServer{}
-	FlagVar(&ses)
+	Flag("ses", &sesServer, "Send mail server domain url")
 }
 
 // SendMail 发送短信
@@ -27,7 +22,7 @@ func SendMail(to string, subject string, body string) error {
 		"body":    {body},
 	}
 
-	resp, err := http.PostForm(ses.Ses+"/v1/send/mail", formData)
+	resp, err := http.PostForm(sesServer+"/v1/send/mail", formData)
 
 	if err != nil {
 		return err
