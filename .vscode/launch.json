@@ -12,7 +12,7 @@
       "program": "${workspaceRoot}",
       "env": {},
       "args": [
-        "-ses", "https://ses.whoam.xyz"
+        "-config", "${workspaceRoot}/config.json",
       ]
     }
   ]
