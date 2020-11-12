@@ -154,6 +154,12 @@ func FlagParse(name string, usage string) {
 	flag.Parse()
 	flag.Usage()
 
+	defer func() {
+		for k := range fields {
+			delete(fields, k)
+		}
+	}()
+
 	if "" == configPath {
 		return
 	}
