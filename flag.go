@@ -122,11 +122,17 @@ func Lower(s string) string {
 
 var fields = make(map[string]reflect.Value)
 
-// FlagVar config flag
+// Flag only supports basic types of flag configuration
+func Flag(name string, value interface{}, usage string) {
+	valueField := reflect.ValueOf(value).Elem()
+	flagVar(name, valueField, usage)
+}
+
+// FlagVar only supports struct type flag configuration
 func FlagVar(config interface{}) {
 	v := reflect.ValueOf(config).Elem()
 
-	// Name of the struct tag used in examples
+	// Name of the struct tag used
 	const tagName = "flag"
 
 	for i := 0; i < v.NumField(); i++ {
@@ -136,20 +142,7 @@ func FlagVar(config interface{}) {
 		name := Lower(typeField.Name)
 		usage := typeField.Tag.Get(tagName)
 
-		switch valueField.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			flag.Var(IntValue{valueField}, name, usage)
-		case reflect.String:
-			flag.Var(StringValue{valueField}, name, usage)
-		case reflect.Bool:
-			flag.Var(BoolValue{valueField}, name, usage)
-		case reflect.Float32, reflect.Float64:
-			flag.Var(FloatValue{valueField}, name, usage)
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			flag.Var(FloatValue{valueField}, name, usage)
-		}
-
-		fields[name] = valueField
+		flagVar(name, valueField, usage)
 	}
 }
 
@@ -169,6 +162,7 @@ func FlagParse(name string, usage string) {
 	if err != nil {
 		panic(err)
 	}
+	defer jsonFile.Close()
 
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
@@ -217,4 +211,20 @@ func FlagParse(name string, usage string) {
 			}
 		}
 	}
+}
+
+func flagVar(name string, value reflect.Value, usage string) {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		flag.Var(IntValue{value}, name, usage)
+	case reflect.String:
+		flag.Var(StringValue{value}, name, usage)
+	case reflect.Bool:
+		flag.Var(BoolValue{value}, name, usage)
+	case reflect.Float32, reflect.Float64:
+		flag.Var(FloatValue{value}, name, usage)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		flag.Var(FloatValue{value}, name, usage)
+	}
+	fields[name] = value
 }
