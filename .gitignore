@@ -3,3 +3,6 @@
 *exe
 
 __debug_bin
+
+config.json
+test.db
