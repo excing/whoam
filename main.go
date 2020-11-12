@@ -43,6 +43,8 @@ func main() {
 		panic("failed to connect database")
 	}
 
+	initUser()
+
 	authorizationMap = make(map[string]AuthorizationInfo)
 	serviceMap = make(map[string]ServiceInfo)
 	authorizationEmailMap = make(map[string]string)
