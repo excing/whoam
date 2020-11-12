@@ -1,35 +1,46 @@
 package main
 
 import (
-	"flag"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-var serverPort int
-var serverDomain string
+// Config 配置文件信息
+type Config struct {
+	Port   int    `flag:"Authorization server port"`
+	Domain string `flag:"Authorization server domain"`
+	Db     string `flag:"Authorization database file path"`
+	Debug  bool   `flag:"Is Debug mode"`
+}
+
+var config Config
+var db *gorm.DB
 
 func init() {
+	port := 8030
 	ip, err := ExternalIP()
 	if err != nil {
 		panic(err)
 	}
 
-	port := 8030
+	config = Config{port, ip + ":" + strconv.Itoa(port), "test.db", false}
 
-	flag.IntVar(&serverPort, "p", port, "Authorization server port")
-	flag.StringVar(&serverDomain, "h", ip+":"+strconv.Itoa(port), "Authorization server domain")
+	FlagVar(&config)
 }
 
 func main() {
-	flag.Parse()
-	flag.Usage()
+	FlagParse("config", "Configuration file path")
+
 	time.FixedZone("CST", 8*3600)
 
-	if serverDomain == "" {
-		panic("ServerDomain is empty")
+	var err error
+	db, err = gorm.Open(sqlite.Open(config.Db), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
 	}
 
 	authorizationMap = make(map[string]AuthorizationInfo)
@@ -53,5 +64,5 @@ func main() {
 	v1.POST("/auth/upgrade", inout(UpgradeAuthRequest))
 	v1.GET("/auth/state", inout(GetAuthState))
 
-	router.Run(":" + strconv.Itoa(serverPort))
+	router.Run(":" + strconv.Itoa(config.Port))
 }

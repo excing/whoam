@@ -2,16 +2,21 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 )
 
-var sendMailServerDomain string
+// SesServer Send mail server config
+type SesServer struct {
+	Ses string `flag:"Send mail server domain url"`
+}
+
+var ses SesServer
 
 func init() {
-	flag.StringVar(&sendMailServerDomain, "ses", "", "Send mail server domain url")
+	ses = SesServer{}
+	FlagVar(&ses)
 }
 
 // SendMail 发送短信
@@ -22,7 +27,7 @@ func SendMail(to string, subject string, body string) error {
 		"body":    {body},
 	}
 
-	resp, err := http.PostForm(sendMailServerDomain+"/v1/send/mail", formData)
+	resp, err := http.PostForm(ses.Ses+"/v1/send/mail", formData)
 
 	if err != nil {
 		return err

@@ -369,8 +369,8 @@ func genServiceToken(serviceID string) (string, string, error) {
 func sendAuthorizationEmail(authorizationCode string, authorizationInfo AuthorizationInfo, userToken string) {
 	emailCode := genUUID().String()
 
-	grantURL := "http://" + serverDomain + "/v1/auth/grant/" + emailCode
-	denyURL := "http://" + serverDomain + "/v1/auth/deny/" + emailCode
+	grantURL := "http://" + config.Domain + "/v1/auth/grant/" + emailCode
+	denyURL := "http://" + config.Domain + "/v1/auth/deny/" + emailCode
 
 	serviceProvider, serviceProviderIDOk := serviceMap[authorizationInfo.ServiceProviderID]
 	serviceRequester, serviceRequesterIDOk := serviceMap[authorizationInfo.ServiceRequesterID]
