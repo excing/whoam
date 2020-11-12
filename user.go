@@ -24,6 +24,24 @@ const (
 
 const timeoutUserVerification = 900 // 用户验证码有效时长: 15分钟
 
+// User basic information, id, email and
+type User struct {
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Email     string
+}
+
+// UserToken user login token
+type UserToken struct {
+	ID       uint   `gorm:"primarykey" schema:"-"`
+	UserID   uint   `schema:"-"`
+	DeivceID string `schema:"deivceId,required"`
+	AppID    string `schema:"appId,required"`
+	Token    string `schema:"-"`
+	Uptoken  string `schema:"-"`
+}
+
 // UserVerification 用户登录验证信息
 type UserVerification struct {
 	Email     string `schema:"email,required"`
@@ -53,6 +71,11 @@ func (user *UserVerification) verifica(dst *UserVerification) error {
 
 // 用户登录验证信息
 var userVerificationMap map[string]UserVerification
+var userTokenMap map[string]UserToken
+
+func initUser() {
+	db.AutoMigrate(&User{}, &UserToken{})
+}
 
 // PostUserAuth 用户登录授权验证
 func PostUserAuth(c *Context) error {
@@ -82,10 +105,12 @@ func PostUserAuth(c *Context) error {
 // PostUserLogin 用户登录
 func PostUserLogin(c *Context) error {
 	email, err := c.FormValue("email")
-
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
+
+	var userToken UserToken
+	err = c.ParseForm(&userToken)
 
 	code := genRandCode(4, KEYS[0:36])
 	t, err := template.New("login").Parse(verificationTlp)
@@ -107,6 +132,7 @@ func PostUserLogin(c *Context) error {
 	token, _ := New64BitUUID()
 
 	userVerificationMap[token] = UserVerification{email, code, token, time.Now().Unix() + timeoutUserVerification}
+	userTokenMap[token] = userToken
 
 	return c.Ok(token)
 }
