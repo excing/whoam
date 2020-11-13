@@ -1,6 +1,10 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/excing/goflag v1.0.0 h1:bt0Yp3lL4BTkwG+KvBO7uHNcLYaScjbqgyMHJITWHks=
+github.com/excing/goflag v1.0.0/go.mod h1:65JLPFtf/2aNQeQG2F0OX0Ij8JIJ26OI4IQmFDOKjLk=
+github.com/excing/goflag v1.0.1 h1:+Thgcb8Y/D+pz0plzfe5F/ftQJT8sDPmj5Kp9f/65Oc=
+github.com/excing/goflag v1.0.1/go.mod h1:65JLPFtf/2aNQeQG2F0OX0Ij8JIJ26OI4IQmFDOKjLk=
 github.com/gin-contrib/sse v0.1.0 h1:Y/yl/+YNO8GZSjAhjMsSuLt29uWRFHdHYUb5lYOV9qE=
 github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
 github.com/gin-gonic/gin v1.6.3 h1:ahKqKTFpO5KTPHxWZjEdPScmYaGtLo8Y4DMHoEsnp14=
