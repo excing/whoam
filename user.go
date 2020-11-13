@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"text/template"
 	"time"
 )
@@ -34,12 +35,10 @@ type User struct {
 
 // UserToken user login token
 type UserToken struct {
-	ID       uint   `gorm:"primarykey" schema:"-"`
-	UserID   uint   `schema:"-"`
-	DeivceID string `schema:"deivceId,required"`
-	AppID    string `schema:"appId,required"`
-	Token    string `schema:"-"`
-	Uptoken  string `schema:"-"`
+	ID      uint   `json:"-" gorm:"primarykey" schema:"-"`
+	UserID  uint   `json:"userId" schema:"-"`
+	Token   string `json:"token" schema:"-"`
+	Uptoken string `json:"uptoken" schema:"-"`
 }
 
 // UserVerification 用户登录验证信息
@@ -75,31 +74,55 @@ var userTokenMap map[string]UserToken
 
 func initUser() {
 	db.AutoMigrate(&User{}, &UserToken{})
+
+	userVerificationMap = make(map[string]UserVerification)
+	userTokenMap = make(map[string]UserToken)
 }
 
 // PostUserAuth 用户登录授权验证
 func PostUserAuth(c *Context) error {
-	var user UserVerification
-	err := c.ParseForm(&user)
+	var dst UserVerification
+	err := c.ParseForm(&dst)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
-	userVerification, ok := userVerificationMap[user.Token]
+	userVerification, ok := userVerificationMap[dst.Token]
 
 	if !ok {
 		return c.Unauthorized("Verification failed: token is invalid")
 	}
 
-	err = userVerification.verifica(&user)
+	err = userVerification.verifica(&dst)
 
 	if err != nil {
 		return c.Unauthorized(err.Error())
 	}
 
 	// todo 记录用户验证成功
+	var count int
+	var user User
+	if db.Where("email=?", userVerification.Email).Find(&user).Error != nil && 0 == count {
+		user.Email = userVerification.Email
+		if err = db.Create(&user).Error; err != nil {
+			return c.InternalServerError(err.Error())
+		}
+	}
 
-	return c.Ok("LOGIN SUCCESSED")
+	token, _ := New64BitUUID()
+	uptoken, _ := New64BitUUID()
+
+	userToken := &UserToken{
+		UserID:  user.ID,
+		Token:   token,
+		Uptoken: uptoken,
+	}
+
+	if err = db.Create(&userToken).Error; err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.Ok(&userToken)
 }
 
 // PostUserLogin 用户登录
@@ -109,8 +132,9 @@ func PostUserLogin(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	var userToken UserToken
-	err = c.ParseForm(&userToken)
+	if !VerifyEmailFormat(email) {
+		return c.BadRequest("Email is invalid")
+	}
 
 	code := genRandCode(4, KEYS[0:36])
 	t, err := template.New("login").Parse(verificationTlp)
@@ -124,7 +148,8 @@ func PostUserLogin(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	err = SendMail(email, "Login WHOAM with verification code", buf.String())
+	// err = SendMail(email, "Login WHOAM with verification code", buf.String())
+	fmt.Println(buf.String())
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
@@ -132,7 +157,6 @@ func PostUserLogin(c *Context) error {
 	token, _ := New64BitUUID()
 
 	userVerificationMap[token] = UserVerification{email, code, token, time.Now().Unix() + timeoutUserVerification}
-	userTokenMap[token] = userToken
 
 	return c.Ok(token)
 }
