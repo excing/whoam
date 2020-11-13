@@ -55,8 +55,10 @@ func (p *Context) Any() *Context {
 // FormValue returns the form value of the specified key,
 // return error if the value does not exist or is empty
 func (p *Context) FormValue(key string) (string, error) {
-	if values, ok := p.GetPostFormArray(key); ok || "" == values[0] {
-		return values[0], nil
+	if values, ok := p.GetPostFormArray(key); ok {
+		if "" != values[0] {
+			return values[0], nil
+		}
 	}
 	return "", errors.New(key + " is empty")
 }
