@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/excing/goflag"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -29,11 +30,11 @@ func init() {
 
 	config = Config{port, ip + ":" + strconv.Itoa(port), "test.db", false}
 
-	FlagVar(&config)
+	goflag.Var(&config)
 }
 
 func main() {
-	FlagParse("config", "Configuration file path")
+	goflag.Parse("config", "Configuration file path")
 
 	time.FixedZone("CST", 8*3600)
 
@@ -48,7 +49,6 @@ func main() {
 	authorizationMap = make(map[string]AuthorizationInfo)
 	serviceMap = make(map[string]ServiceInfo)
 	authorizationEmailMap = make(map[string]string)
-	userVerificationMap = make(map[string]UserVerification)
 
 	router := gin.Default()
 	router.GET("/", func(c *gin.Context) {})

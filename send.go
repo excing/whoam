@@ -5,13 +5,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/excing/goflag"
 )
 
 // Send mail server domain
 var sesServer string
 
 func init() {
-	Flag("ses", &sesServer, "Send mail server domain url")
+	goflag.Var(&sesServer, "ses", "Send mail server domain url")
 }
 
 // SendMail 发送短信
