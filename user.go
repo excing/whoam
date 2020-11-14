@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -55,10 +56,10 @@ func (user *UserVerification) verifica(dst *UserVerification) error {
 	if user.UntilTime < time.Now().Unix() {
 		return errors.New("Verification failed: code is expired")
 	}
-	if user.Code != dst.Code {
+	if user.Code != strings.ToTitle(dst.Code) {
 		return errors.New("Verification failed: code is invalid")
 	}
-	if user.Code != dst.Code {
+	if user.Token != dst.Token {
 		return errors.New("Verification failed: token is invalid")
 	}
 	if user.Email != dst.Email {
