@@ -54,8 +54,11 @@ func main() {
 	router.GET("/", func(c *gin.Context) {})
 
 	v1 := router.Group("/v1")
-	v1.POST("/user/login", inout(PostUserLogin))
-	v1.POST("/user/auth", inout(PostUserAuth))
+	v1.POST("/user/main/login", inout(PostUserLogin))
+	v1.POST("/user/main/auth", inout(PostUserAuth))
+
+	v1.POST("/user/oauth/login", inout(PostUserOAuthLogin))
+	v1.POST("/user/oauth/auth", inout(PostUserOAuthLogin))
 
 	v1.POST("/servicer", inout(PostServicer))
 	v1.DELETE("/servicer", inout(DeleteServicer))

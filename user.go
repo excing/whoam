@@ -161,3 +161,13 @@ func PostUserLogin(c *Context) error {
 
 	return c.Ok(token)
 }
+
+// PostUserOAuthLogin requesting user's whoam identity
+func PostUserOAuthLogin(c *Context) error {
+	return c.NoContent()
+}
+
+// PostUserOAuthAuth whoam user authorized the request(/user/oauth/login request)
+func PostUserOAuthAuth(c *Context) error {
+	return c.NoContent()
+}
