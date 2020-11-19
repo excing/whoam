@@ -178,6 +178,14 @@ func (p *Context) Path(filepath string) error {
 	return nil
 }
 
+// OkHTML renders the HTTP template specified by its file name.
+// It also updates the HTTP code and sets the Content-Type as "text/html".
+// See http://golang.org/doc/articles/wiki/
+func (p *Context) OkHTML(code int, name string, obj interface{}) error {
+	p.HTML(http.StatusOK, name, obj)
+	return nil
+}
+
 // bodyAllowedForStatus is a copy of http.bodyAllowedForStatus non-exported function.
 func bodyAllowedForStatus(status int) bool {
 	switch {
