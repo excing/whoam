@@ -1,0 +1,60 @@
+<html>
+
+<head>
+  <title>OAuth授权</title>
+</head>
+
+<body style="font-family: Roboto, sans-serif">
+  <p>Hello, Welcome to whoam. You are using Email Verification Code to login to <a href="https://whoam.xyz">WHOAM</a>
+  <p><button onclick="allow()">允许</button> / <a href="javascript:history.go(-1)">取消</a>
+  <p>If this isn't your own operating, please ignore this email.
+  <p>Please don't reply!
+    <hr>
+  <p>Thank you,
+  <p style="margin: 0 auto; font-size: 1.5em;">The ThreeTenth team</p>
+  <script>
+    function allow() {
+      sendData({
+        test: "ok"
+      })
+    }
+
+    function sendData(data) {
+      var XHR = new XMLHttpRequest();
+      var urlEncodedData = "";
+      var urlEncodedDataPairs = [];
+      var name;
+
+      // 将数据对象转换为URL编码的键/值对数组。
+      for (name in data) {
+        urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(data[name]));
+      }
+
+      // 将配对合并为单个字符串，并将所有%编码的空格替换为
+      // “+”字符；匹配浏览器表单提交的行为。
+      urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
+
+      // 定义成功数据提交时发生的情况
+      XHR.addEventListener('load', function (event) {
+        var url =  XHR.response
+        window.location = url.substr(1, url.length - 2)
+      });
+
+      // 定义错误提示
+      XHR.addEventListener('error', function (event) {
+        alert('哎呀！出问题了。');
+      });
+
+      // 建立我们的请求
+      XHR.open('POST', '/v1/user/oauth/auth');
+
+      // 为表单数据POST请求添加所需的HTTP头
+      XHR.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+      // 最后，发送我们的数据。
+      XHR.send(urlEncodedData);
+    }
+  </script>
+</body>
+
+</html>
