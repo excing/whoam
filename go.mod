@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/excing/goflag v1.0.1
 	github.com/gin-gonic/gin v1.6.3
+	github.com/gobuffalo/packr v1.30.1
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/schema v1.2.0
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
