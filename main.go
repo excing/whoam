@@ -69,7 +69,7 @@ func main() {
 	router.GET("/", func(c *gin.Context) {})
 
 	v1 := router.Group("/v1")
-	v1.POST("/user/main/login", inout(PostUserLogin))
+	v1.POST("/user/main/code", inout(PostMainCode))
 	v1.POST("/user/main/auth", inout(PostUserAuth))
 
 	v1.POST("/user/oauth/login", inout(PostUserOAuthLogin))
