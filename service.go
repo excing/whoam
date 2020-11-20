@@ -13,7 +13,7 @@ type Service struct {
 	ServiceToken string
 }
 
-type serviceForm struct {
+type postServiceForm struct {
 	ServiceID   string `schema:"serviceId,required"`
 	ServiceName string `schema:"serviceName,required"`
 	ServiceDesc string
@@ -21,7 +21,7 @@ type serviceForm struct {
 
 // PostServicer 提交服务注册
 func PostServicer(c *Context) error {
-	var form serviceForm
+	var form postServiceForm
 	err := c.ParseForm(&form)
 	if err != nil {
 		return c.BadRequest(err.Error())
