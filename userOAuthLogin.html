@@ -1,26 +1,26 @@
 <html>
 
 <head>
-  <title>OAuth授权</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OAuth授权-WHOAM</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ThreeTenth/css-theme@v0.1.1/colours.css" />
+  <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
 </head>
 
-<body style="font-family: Roboto, sans-serif">
-  <p>Hello, Welcome to whoam. You are using Email Verification Code to login to <a href="https://whoam.xyz">WHOAM</a>
-  <p><button onclick="allow()">允许</button> / <a href="javascript:history.go(-1)">取消</a>
-  <p>If this isn't your own operating, please ignore this email.
-  <p>Please don't reply!
-    <hr>
-  <p>Thank you,
-  <p style="margin: 0 auto; font-size: 1.5em;">The ThreeTenth team</p>
+<body class="black">
+  <div id="login">
+    <form>
+      <div>Email: <input type="email" id="email" /></div>
+      <div>Code: <input type="text" id="code" /> <input onclick="loginCode()" type="button" value="获取登录授权码" /></div>
+      <input onclick="loginAuth()" type="button" value="登录" />
+    </form>
+  </div>
+  <div id="auth" hidden>
+    授权
+  </div>
   <script>
-    function allow() {
-      sendData({
-        test: "ok"
-      })
-    }
-
-    function sendData(data) {
-      var XHR = new XMLHttpRequest();
+    function Post(url, data, success, failure = undefined, error = undefined) {
       var urlEncodedData = "";
       var urlEncodedDataPairs = [];
       var name;
@@ -34,25 +34,92 @@
       // “+”字符；匹配浏览器表单提交的行为。
       urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
 
-      // 定义成功数据提交时发生的情况
-      XHR.addEventListener('load', function (event) {
-        var url =  XHR.response
-        window.location = url.substr(1, url.length - 2)
-      });
+      var request = new XMLHttpRequest();
+      request.open("POST", url);
+      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      request.onload = function () {
+        if (200 <= request.status && request.status < 300) {
+          success(request.status, request.response)
+        } else if (failure != undefined) {
+          failure(request.status, request.response)
+        }
+      }
+      request.error = error
+      request.send(urlEncodedData);
+    }
 
-      // 定义错误提示
-      XHR.addEventListener('error', function (event) {
-        alert('哎呀！出问题了。');
-      });
+    function Get(url, headers, success, failure = undefined, error = undefined) {
+      var request = new XMLHttpRequest();
+      request.open("GET", url);
+      for (name in headers) {
+        request.setRequestHeader(name, headers[name]);
+      }
+      request.onload = function () {
+        if (200 <= request.status && request.status < 300) {
+          success(request.status, request.response)
+        } else if (failure != undefined) {
+          failure(request.status, request.response)
+        }
+      }
+      request.error = error
+      request.send();
+    }
 
-      // 建立我们的请求
-      XHR.open('POST', '/v1/user/oauth/auth');
+    function loginFragment() {
+      document.getElementById("login").hidden = false
+      document.getElementById("auth").hidden = true
+    }
 
-      // 为表单数据POST请求添加所需的HTTP头
-      XHR.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    function authFragment() {
+      document.getElementById("login").hidden = true
+      document.getElementById("auth").hidden = false
+    }
 
-      // 最后，发送我们的数据。
-      XHR.send(urlEncodedData);
+    function loginCode() {
+      const email = document.getElementById('email').value
+      const appId = "whoam.xyz"
+      const state = Math.random().toString(36).slice(2)
+      Post('http://10.0.0.254:18030/v1/user/login/code', {
+        email: email,
+        appId: appId,
+        state: state,
+      }, function (status, response) {
+        loginToken = response
+        loginState = state
+      }, function (status, response) {
+        alert(response);
+      }, function () {
+        alert('Network connection failed')
+      })
+    }
+
+    function loginAuth() {
+      const email = document.getElementById('email').value
+      const state = loginState
+      const token = loginToken
+      const code = document.getElementById('code').value
+      Post('http://10.0.0.254:18030/v1/user/main/auth', {
+        email: email,
+        state: state,
+        token: token,
+        code: code,
+      }, function (status, response) {
+        var user = JSON.parse(response)
+        Cookies.set('userId', user.userId)
+        Cookies.set('accessToken', user.accessToken)
+      })
+    }
+
+    var loginToken, loginState
+    var accessToken = Cookies.get('accessToken')
+
+    if (undefined == accessToken || '' == accessToken) {
+      loginFragment()
+    } else {
+      Get("http://10.0.0.254:18030/v1/user/main/state", { Authorization: accessToken },
+        function (status, response) {
+          authFragment()
+        })
     }
   </script>
 </body>

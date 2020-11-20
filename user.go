@@ -9,9 +9,6 @@ import (
 	"time"
 )
 
-// KEYS code 生成字典
-const KEYS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
 const (
 	verificationTlp = `<body style="font-family: Roboto, sans-serif">
   <p>Hello, Welcome to whoam. You are using Email Verification Code to login to <a href="https://whoam.xyz">WHOAM</a>
@@ -36,24 +33,17 @@ type User struct {
 
 // UserToken user login token
 type UserToken struct {
-	ID        uint `json:"-" gorm:"primarykey" schema:"-"`
-	CreatedAt time.Time
-	UserID    uint   `json:"userId" schema:"-"`
-	Token     string `json:"token" schema:"-"`
-	Uptoken   string `json:"uptoken" schema:"-"`
-}
-
-// UserVerification 用户登录验证信息
-type UserVerification struct {
-	Email     string `schema:"email,required"`
-	Code      string `schema:"code,required"`
-	Token     string `schema:"token,required"`
-	UntilTime int64  `schema:"-"`
+	ID          uint      `json:"-" gorm:"primarykey"`
+	CreatedAt   time.Time `json:"-"`
+	UserID      uint      `json:"userId"`
+	AppID       string    `json:"-"`
+	AccessToken string    `json:"accessToken"`
+	UpdateToken string    `json:"updateToken"`
 }
 
 // Return verification failure information,
 // if returns nil, it means verification is successful
-func (user *UserVerification) verifica(dst *UserVerification) error {
+func (user *userVerificationForm) verifica(dst *userVerificationForm) error {
 	if user.UntilTime < time.Now().Unix() {
 		return errors.New("Verification failed: code is expired")
 	}
@@ -63,6 +53,9 @@ func (user *UserVerification) verifica(dst *UserVerification) error {
 	if user.Token != dst.Token {
 		return errors.New("Verification failed: token is invalid")
 	}
+	if user.State != dst.State {
+		return errors.New("Verification failed: state is invalid")
+	}
 	if user.Email != dst.Email {
 		return errors.New("Verification failed: email is invalid")
 	}
@@ -71,19 +64,26 @@ func (user *UserVerification) verifica(dst *UserVerification) error {
 }
 
 // 用户登录验证信息
-var userVerificationMap map[string]UserVerification
-var userTokenMap map[string]UserToken
+var userVerificationMap map[string]userVerificationForm
 
 func initUser() {
 	db.AutoMigrate(&User{}, &UserToken{})
 
-	userVerificationMap = make(map[string]UserVerification)
-	userTokenMap = make(map[string]UserToken)
+	userVerificationMap = make(map[string]userVerificationForm)
+}
+
+type userVerificationForm struct {
+	Email     string `schema:"email,required"`
+	AppID     string `schema:"-"`
+	State     string `schema:"state,required" note:"This parameter should be consistent with the state in /user/main/login"`
+	Code      string `schema:"code,required"`
+	Token     string `schema:"token,required"`
+	UntilTime int64  `schema:"-"`
 }
 
 // PostUserAuth 用户登录授权验证
 func PostUserAuth(c *Context) error {
-	var dst UserVerification
+	var dst userVerificationForm
 	err := c.ParseForm(&dst)
 	if err != nil {
 		return c.BadRequest(err.Error())
@@ -102,43 +102,52 @@ func PostUserAuth(c *Context) error {
 	}
 
 	// todo 记录用户验证成功
-	var count int
 	var user User
-	if db.Where("email=?", userVerification.Email).Find(&user).Error != nil && 0 == count {
+	if db.Where("email=?", userVerification.Email).Find(&user).Error != nil || 0 == user.ID {
 		user.Email = userVerification.Email
 		if err = db.Create(&user).Error; err != nil {
 			return c.InternalServerError(err.Error())
 		}
 	}
 
-	token, _ := New64BitUUID()
-	uptoken, _ := New64BitUUID()
+	accessToken, _ := New64BitUUID()
+	updateToken, _ := New64BitUUID()
 
 	userToken := &UserToken{
-		UserID:  user.ID,
-		Token:   token,
-		Uptoken: uptoken,
+		UserID:      user.ID,
+		AppID:       userVerification.AppID,
+		AccessToken: accessToken,
+		UpdateToken: updateToken,
 	}
 
 	if err = db.Create(&userToken).Error; err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
+	delete(userVerificationMap, dst.Token)
+
 	return c.Ok(&userToken)
 }
 
-// PostUserLogin 用户登录
-func PostUserLogin(c *Context) error {
-	email, err := c.FormValue("email")
+type userLoginForm struct {
+	Email string `schema:"email,required"`
+	AppID string `schema:"appId,required"`
+	State string `schema:"state,required" note:"random number"`
+}
+
+// PostMainCode 用户登录
+func PostMainCode(c *Context) error {
+	var form userLoginForm
+	err := c.ParseForm(&form)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
-	if !VerifyEmailFormat(email) {
+	if !VerifyEmailFormat(form.Email) {
 		return c.BadRequest("Email is invalid")
 	}
 
-	code := genRandCode(4, KEYS[0:36])
+	code := genRandCode(4, 36)
 	t, err := template.New("login").Parse(verificationTlp)
 	if err != nil {
 		return c.InternalServerError(err.Error())
@@ -158,14 +167,37 @@ func PostUserLogin(c *Context) error {
 
 	token, _ := New64BitUUID()
 
-	userVerificationMap[token] = UserVerification{email, code, token, time.Now().Unix() + timeoutUserVerification}
+	userVerificationMap[token] = userVerificationForm{form.Email, form.AppID, form.State, code, token, time.Now().Unix() + timeoutUserVerification}
 
 	return c.Ok(token)
 }
 
+// GetUserState get user login status
+func GetUserState(c *Context) error {
+	var count int64
+	token := c.GetHeader("Authorization")
+	if err := db.Where("access_token=?", token).Find(&UserToken{}).Count(&count).Error; err != nil || 0 == count {
+		return c.Any().Unauthorized("Invalid token, please login again")
+	}
+	return c.NoContent()
+}
+
+// UserOAuthLoginForm `/user/oauth/login` api form
+type UserOAuthLoginForm struct {
+	ServiceID string `schema:"serviceId,required"`
+	State     string `schema:"state,required"`
+}
+
 // PostUserOAuthLogin requesting user's whoam identity
 func PostUserOAuthLogin(c *Context) error {
-	return c.NoContent()
+	var form UserOAuthLoginForm
+	err := c.ParseForm(&form)
+
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	return c.OkHTML(tlpUserOAuthLogin, nil)
 }
 
 // PostUserOAuthAuth whoam user authorized the request(/user/oauth/login request)

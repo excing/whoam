@@ -71,6 +71,7 @@ func main() {
 	v1 := router.Group("/v1")
 	v1.POST("/user/main/code", inout(PostMainCode))
 	v1.POST("/user/main/auth", inout(PostUserAuth))
+	v1.GET("/user/main/state", inout(GetUserState))
 
 	v1.POST("/user/oauth/login", inout(PostUserOAuthLogin))
 	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
