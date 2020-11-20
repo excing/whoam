@@ -153,7 +153,18 @@ func (p *Context) ServiceUnavailable(format string, values ...interface{}) error
 // Ok serializes the given struct as JSON into the response body.
 // It also sets the Content-Type as "application/json".
 func (p *Context) Ok(obj interface{}) error {
+	if str, ok := obj.(string); ok {
+		return p.Render(http.StatusOK, render.String{Format: str})
+	}
 	return p.Render(http.StatusOK, render.JSON{Data: obj})
+}
+
+// OkHTML renders the HTTP template specified by its file name.
+// It also updates the HTTP code and sets the Content-Type as "text/html".
+// See http://golang.org/doc/articles/wiki/
+func (p *Context) OkHTML(name string, obj interface{}) error {
+	p.HTML(http.StatusOK, name, obj)
+	return nil
 }
 
 // Created writes a Created request code(201) with the given string into the response body.
@@ -175,14 +186,6 @@ func (p *Context) NoContent() error {
 // Path writes the specified file into the body stream in a efficient way.
 func (p *Context) Path(filepath string) error {
 	http.ServeFile(p.Writer, p.Request, filepath)
-	return nil
-}
-
-// OkHTML renders the HTTP template specified by its file name.
-// It also updates the HTTP code and sets the Content-Type as "text/html".
-// See http://golang.org/doc/articles/wiki/
-func (p *Context) OkHTML(code int, name string, obj interface{}) error {
-	p.HTML(http.StatusOK, name, obj)
 	return nil
 }
 
