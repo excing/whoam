@@ -2,41 +2,17 @@ package main
 
 import (
 	crand "crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"math/rand"
 	"time"
 	"unsafe"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_="
 
 var rander = crand.Reader // random function
-
-// Encry 对 bytes 进行 sha256 编码，并对 sha256 编码进行随机盐加密
-func Encry(bytes []byte) ([]byte, []byte, error) {
-	h := sha256.New()
-	h.Write(bytes)
-	src := h.Sum(nil)
-	dst := make([]byte, hex.EncodedLen(len(src)))
-	hex.Encode(dst, src)
-	psd, err := bcrypt.GenerateFromPassword(dst, bcrypt.DefaultCost)
-	return dst, psd, err
-}
-
-func genAuthCode() string {
-	code := genRandCode(8, KEYS)
-
-	if _, ok := authorizationMap[code]; ok {
-		return genAuthCode()
-	}
-
-	return code
-}
 
 const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
