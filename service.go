@@ -1,7 +1,6 @@
 package main
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -30,7 +29,6 @@ func PostServicer(c *Context) error {
 
 	var service Service
 	err = db.Where("serviceId=?", form.ServiceID).Find(&service).Error
-
 	if err == nil && 0 != service.ID {
 		return c.Created("This service is already registered")
 	}
@@ -43,35 +41,36 @@ func PostServicer(c *Context) error {
 	service.ServiceToken = token
 
 	err = db.Create(&service).Error
-
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.Ok("Post successed")
+	return c.Ok(token)
+}
+
+type deleteServiceForm struct {
+	ServiceID    string `schema:"serviceId,required"`
+	ServiceToken string `schema:"serviceToken,required"`
 }
 
 // DeleteServicer 注销服务
 func DeleteServicer(c *Context) error {
-	serviceID := c.PostForm("serviceId")
-	serviceToken := c.PostForm("serviceToken")
-
-	if "" == serviceID {
-		return c.BadRequest("serviceId is empty")
-	} else if "" == serviceToken {
-		return c.BadRequest("serviceToken is empty")
+	var form deleteServiceForm
+	err := c.ParseForm(&form)
+	if err != nil {
+		return c.BadRequest(err.Error())
 	}
 
-	serviceProvider, providerOk := serviceMap[serviceID]
-
-	if providerOk {
-		err := bcrypt.CompareHashAndPassword([]byte(serviceProvider.ServiceTokenEncode), []byte(serviceToken))
-
-		if err == nil {
-			delete(serviceMap, serviceID)
-			return c.NoContent()
-		}
+	var service Service
+	err = db.Where("serviceId=?", form.ServiceID).Find(&service).Error
+	if err != nil {
+		return c.Forbidden("Service not registered")
 	}
 
-	return c.Unauthorized("serviceToken is an invalid value")
+	err = db.Delete(&service).Error
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.NoContent()
 }
