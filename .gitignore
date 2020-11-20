@@ -1,8 +1,13 @@
 /release
 
+# go build
 *exe
 
+# vscode
 __debug_bin
+
+# debugger for chrome
+debug.log
 
 config.json
 test.db
