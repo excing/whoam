@@ -36,10 +36,11 @@ type User struct {
 
 // UserToken user login token
 type UserToken struct {
-	ID      uint   `json:"-" gorm:"primarykey" schema:"-"`
-	UserID  uint   `json:"userId" schema:"-"`
-	Token   string `json:"token" schema:"-"`
-	Uptoken string `json:"uptoken" schema:"-"`
+	ID        uint `json:"-" gorm:"primarykey" schema:"-"`
+	CreatedAt time.Time
+	UserID    uint   `json:"userId" schema:"-"`
+	Token     string `json:"token" schema:"-"`
+	Uptoken   string `json:"uptoken" schema:"-"`
 }
 
 // UserVerification 用户登录验证信息
