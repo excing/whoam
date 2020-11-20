@@ -1,11 +1,13 @@
 package main
 
 import (
+	"html/template"
 	"strconv"
 	"time"
 
 	"github.com/excing/goflag"
 	"github.com/gin-gonic/gin"
+	"github.com/gobuffalo/packr/v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -17,6 +19,10 @@ type Config struct {
 	Db     string `flag:"Authorization database file path"`
 	Debug  bool   `flag:"Is Debug mode"`
 }
+
+const (
+	tlpUserOAuthLogin = "userOAuthLogin.html"
+)
 
 var config Config
 var db *gorm.DB
@@ -46,11 +52,20 @@ func main() {
 
 	initUser()
 
-	authorizationMap = make(map[string]AuthorizationInfo)
-	serviceMap = make(map[string]ServiceInfo)
-	authorizationEmailMap = make(map[string]string)
+	tmpl := template.New("user")
+	box := packr.NewBox("./")
+	htmls := []string{
+		tlpUserOAuthLogin,
+	}
+
+	for _, v := range htmls {
+		indexTmpl := tmpl.New(v)
+		data, _ := box.FindString(v)
+		indexTmpl.Parse(data)
+	}
 
 	router := gin.Default()
+	router.SetHTMLTemplate(tmpl)
 	router.GET("/", func(c *gin.Context) {})
 
 	v1 := router.Group("/v1")
