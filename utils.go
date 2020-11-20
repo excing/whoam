@@ -31,8 +31,18 @@ const (
 var src = rand.NewSource(time.Now().UnixNano())
 
 // see: https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go?answertab=votes#tab-top
-func genRandCode(n int, dict string) string {
+func genRandCode(n int, bit ...int) string {
 	b := make([]byte, n)
+	start, end := 0, len(digits)
+	switch len(bit) {
+	case 1:
+		end = bit[0]
+	case 2:
+		start = bit[0]
+		end = bit[1]
+	}
+	dict := digits[start:end]
+
 	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
 	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
 		if remain == 0 {
