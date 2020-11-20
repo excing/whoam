@@ -58,16 +58,10 @@ func main() {
 	v1.POST("/user/main/auth", inout(PostUserAuth))
 
 	v1.POST("/user/oauth/login", inout(PostUserOAuthLogin))
-	v1.POST("/user/oauth/auth", inout(PostUserOAuthLogin))
+	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
 
 	v1.POST("/servicer", inout(PostServicer))
 	v1.DELETE("/servicer", inout(DeleteServicer))
-
-	v1.POST("/auth/request", inout(PostAuthRequest))
-	v1.GET("/auth/grant/:code", inout(GrantAuthRequest))
-	v1.GET("/auth/deny/:code", inout(DenyAuthRequest))
-	v1.POST("/auth/upgrade", inout(UpgradeAuthRequest))
-	v1.GET("/auth/state", inout(GetAuthState))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }
