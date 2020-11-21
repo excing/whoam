@@ -1,8 +1,31 @@
-<form method="POST" action="http://10.0.0.254:18030/v1/user/oauth/login">
-  <input name="serviceId" value="example.com" hidden />
-  <input name="state" value="" hidden />
-  <input type="submit" value="登录" />
-</form>
-<script>
-  document.getElementsByName("state")[0].value = Math.random().toString(36).slice(2)
-</script>
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OAuth example</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ThreeTenth/css-theme@v0.1.1/colours.css" />
+  <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
+</head>
+
+<body class="black">
+  <div id='user'>未登录</div>
+  <a id="loginWithWhoam">Login with whoam</a>
+  <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
+  <script>
+    var whoam = "http://10.0.0.254:18030/v1/user/oauth/login"
+    var state = Math.random().toString(36).slice(2)
+    var clientId = "example.com"
+    var redirect_uri = "http://127.0.0.1:5500/example/redirect.html"
+    var return_to = 'example/index.html'
+    var href = whoam + "?state=" + state + "&clientId=" + clientId + "&redirect_uri=" + redirect_uri + "&return_to=" + return_to
+    document.getElementById('loginWithWhoam').href = href
+
+    if (undefined != Cookies.get('accessToken')) {
+      document.getElementById('user').innerText = '已登录'
+    }
+  </script>
+</body>
+
+</html>
