@@ -113,7 +113,7 @@ func PostUserAuth(c *Context) error {
 	accessToken, _ := New64BitUUID()
 	updateToken, _ := New64BitUUID()
 
-	userToken := &UserToken{
+	userToken := UserToken{
 		UserID:      user.ID,
 		AppID:       userVerification.AppID,
 		AccessToken: accessToken,
@@ -184,11 +184,11 @@ func GetUserState(c *Context) error {
 
 // UserOAuthLoginForm `/user/oauth/login` api form
 type UserOAuthLoginForm struct {
-	ServiceID string `schema:"serviceId,required"`
-	State     string `schema:"state,required"`
 }
 
 // PostUserOAuthLogin requesting user's whoam identity
+// GitHub: https://github.com/login?client_id=bfe378e98cde9624c98c&return_to=/login/oauth/authorize?client_id=bfe378e98cde9624c98c&redirect_uri=https://www.iconfont.cn/api/login/github/callback&state=123123sadh1as12
+// 58778ef7632c0d4876432bb4866206775c711d4c
 func PostUserOAuthLogin(c *Context) error {
 	var form UserOAuthLoginForm
 	err := c.ParseForm(&form)
@@ -197,10 +197,43 @@ func PostUserOAuthLogin(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	return c.OkHTML(tlpUserOAuthLogin, nil)
+	return c.OkHTML(tlpUserOAuthLogin, form)
+}
+
+type oauthAuthForm struct {
+	UserID      string `schema:"userId,required"`
+	AccessToken string `schema:"accessToken,required"`
+	ClientID    string `schema:"clientId,required"`
+	State       string `schema:"state,required"`
 }
 
 // PostUserOAuthAuth whoam user authorized the request(/user/oauth/login request)
 func PostUserOAuthAuth(c *Context) error {
-	return c.NoContent()
+	var form oauthAuthForm
+	err := c.ParseForm(&form)
+
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	var loginUserToken UserToken
+	if err = db.Where("user_id=? AND access_token=?", form.UserID, form.AccessToken).Find(&loginUserToken).Error; err != nil || 0 == loginUserToken.ID {
+		return c.Any().Unauthorized("Invalid token, please login again")
+	}
+
+	accessToken, _ := New64BitUUID()
+	updateToken, _ := New64BitUUID()
+
+	oauthUserToken := UserToken{
+		UserID:      loginUserToken.UserID,
+		AppID:       form.ClientID,
+		AccessToken: accessToken,
+		UpdateToken: updateToken,
+	}
+
+	if err = db.Create(&oauthUserToken).Error; err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.Ok(&oauthUserToken)
 }
