@@ -1,0 +1,10 @@
+正在跳转...
+<script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
+<script>
+  const url_string = window.location.href
+  const url = new URL(url_string)
+  const return_to = url.searchParams.get("return_to")
+  const token = url.searchParams.get("token")
+  Cookies.set('accessToken', token)
+  location.replace(return_to)
+</script>
