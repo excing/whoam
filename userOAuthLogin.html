@@ -126,8 +126,8 @@
         clientId: clientId,
         state: state,
       }, function (status, response) {
-        const user = JSON.parse(response)
-        window.location.href = redirect_uri + "?return_to=" + return_to + "&token=" + user.accessToken
+        const code = response
+        window.location.href = redirect_uri + "?return_to=" + return_to + "&code=" + code
       })
     }
 

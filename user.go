@@ -65,11 +65,13 @@ func (user *userVerificationForm) verifica(dst *userVerificationForm) error {
 
 // 用户登录验证信息
 var userVerificationMap map[string]userVerificationForm
+var oauthTokenMap map[string]UserToken
 
 func initUser() {
 	db.AutoMigrate(&User{}, &UserToken{})
 
 	userVerificationMap = make(map[string]userVerificationForm)
+	oauthTokenMap = make(map[string]UserToken)
 }
 
 type userVerificationForm struct {
@@ -235,7 +237,29 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.Ok(&oauthUserToken)
+	code, _ := New64BitUUID()
+
+	oauthTokenMap[code] = oauthUserToken
+
+	return c.Ok(code)
+}
+
+// GetOAuthCode obtain user authentication information through code
+func GetOAuthCode(c *Context) error {
+	code := c.Query("code")
+	if "" == code {
+		return c.BadRequest("code is empty")
+	}
+
+	userOAuthToken, ok := oauthTokenMap[code]
+
+	if !ok {
+		return c.Unauthorized("Invalid token, please login again")
+	}
+
+	delete(oauthTokenMap, code)
+
+	return c.Ok(&userOAuthToken)
 }
 
 type oauthStateForm struct {
