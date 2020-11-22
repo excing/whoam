@@ -237,3 +237,25 @@ func PostUserOAuthAuth(c *Context) error {
 
 	return c.Ok(&oauthUserToken)
 }
+
+type oauthStateForm struct {
+	UserID      string `schema:"userId,required"`
+	AccessToken string `schema:"accessToken,required"`
+	ClientID    string `schema:"clientId,required"`
+}
+
+// GetOAuthState Get user authorization status
+func GetOAuthState(c *Context) error {
+	var form oauthStateForm
+	err := c.ParseForm(&form)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	var count int64
+	if db.Where("user_id=? AND app_id=? AND access_token=?", form.UserID, form.ClientID, form.AccessToken).Find(&UserToken{}).Error != nil && 0 == count {
+		return c.Unauthorized("Invalid token, please login again")
+	}
+
+	return c.NoContent()
+}

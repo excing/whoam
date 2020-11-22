@@ -86,6 +86,7 @@ func main() {
 
 	v1.GET("/user/oauth/login", inout(PostUserOAuthLogin))
 	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
+	v1.POST("/user/oauth/state", inout(GetOAuthState))
 
 	v1.POST("/servicer", inout(PostServicer))
 	v1.DELETE("/servicer", inout(DeleteServicer))
