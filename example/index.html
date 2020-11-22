@@ -42,7 +42,7 @@
       request.send(urlEncodedData);
     }
 
-    var whoam = "http://10.0.0.254:18030/v1/user/oauth/login"
+    var whoam = "http://127.0.0.1:18030/v1/user/oauth/login"
     var state = Math.random().toString(36).slice(2)
     var clientId = "example.com"
     var redirect_uri = "http://127.0.0.1:5500/example/redirect.html"
