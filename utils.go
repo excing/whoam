@@ -52,6 +52,12 @@ func RandNdigMbitString(n int, m ...int) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
+// New128BitID Get a 128-base random string,
+// 10 numbers + 26 lowercase letters + 26 uppercase letters + (=, _), length 64
+func New128BitID() string {
+	return RandNdigMbitString(128)
+}
+
 // New64BitID Get a 64-base random string,
 // 10 numbers + 26 lowercase letters + 26 uppercase letters + (=, _), length 64
 func New64BitID() string {

@@ -30,3 +30,9 @@ func TestGenID(t *testing.T) {
 	t.Log(New32BitID())
 	t.Log(New64BitID())
 }
+
+func TestNew128BitID(t *testing.T) {
+	for i := 128; 0 < i; i-- {
+		t.Log(New128BitID())
+	}
+}
