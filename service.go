@@ -32,7 +32,7 @@ func PostServicer(c *Context) error {
 		return c.Created("This service is already registered")
 	}
 
-	token, _ := New64BitUUID()
+	token := New64BitID()
 
 	service.ServiceID = form.ServiceID
 	service.ServiceName = form.ServiceName

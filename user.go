@@ -112,8 +112,8 @@ func PostUserAuth(c *Context) error {
 		}
 	}
 
-	accessToken, _ := New64BitUUID()
-	updateToken, _ := New64BitUUID()
+	accessToken := New64BitID()
+	updateToken := New64BitID()
 
 	userToken := UserToken{
 		UserID:      user.ID,
@@ -149,7 +149,7 @@ func PostMainCode(c *Context) error {
 		return c.BadRequest("Email is invalid")
 	}
 
-	code := genRandCode(4, 36)
+	code := RandNdigMbitString(4, 36)
 	t, err := template.New("login").Parse(verificationTlp)
 	if err != nil {
 		return c.InternalServerError(err.Error())
@@ -167,7 +167,7 @@ func PostMainCode(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	token, _ := New64BitUUID()
+	token := New64BitID()
 
 	userVerificationMap[token] = userVerificationForm{form.Email, form.AppID, form.State, code, token, time.Now().Unix() + timeoutUserVerification}
 
@@ -223,8 +223,8 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.Any().Unauthorized("Invalid token, please login again")
 	}
 
-	accessToken, _ := New64BitUUID()
-	updateToken, _ := New64BitUUID()
+	accessToken := New64BitID()
+	updateToken := New64BitID()
 
 	oauthUserToken := UserToken{
 		UserID:      loginUserToken.UserID,
@@ -237,7 +237,7 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	code, _ := New64BitUUID()
+	code := New64BitID()
 
 	oauthTokenMap[code] = oauthUserToken
 
