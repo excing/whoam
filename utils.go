@@ -52,8 +52,44 @@ func RandNdigMbitString(n int, m ...int) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// New64BitID 获取 64进制 UUID, 10个数字+26个小写字母+26个大写字母+(=、_), 长度 24
-// generates a random UUID according to RFC 4122
+// New64BitID Get a 64-base random string,
+// 10 numbers + 26 lowercase letters + 26 uppercase letters + (=, _), length 64
 func New64BitID() string {
 	return RandNdigMbitString(64)
+}
+
+// New32BitID Get a 32-base random string,
+// 10 numbers + 26 uppercase letters
+func New32BitID() string {
+	return RandNdigMbitString(32, 36)
+}
+
+// New32bitID Get a 32-base random string,
+// 10 numbers + 26 lowercase letters
+func New32bitID() string {
+	return RandNdigMbitString(32, 26, 36)
+}
+
+// New16BitID Get a 16-base random string,
+// 10 numbers + 26 uppercase letters
+func New16BitID() string {
+	return RandNdigMbitString(16, 36)
+}
+
+// New16bitID Get a 16-base random string,
+// 10 numbers + 26 lowercase letters
+func New16bitID() string {
+	return RandNdigMbitString(16, 26, 36)
+}
+
+// New4BitID Get a 4-base random string,
+// 10 numbers + 26 uppercase letters
+func New4BitID() string {
+	return RandNdigMbitString(4, 36)
+}
+
+// New4bitID Get a 4-base random string,
+// 10 numbers + 26 lowercase letters
+func New4bitID() string {
+	return RandNdigMbitString(4, 26, 36)
 }
