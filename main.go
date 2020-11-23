@@ -22,6 +22,7 @@ type Config struct {
 
 const (
 	tlpUserOAuthLogin = "userOAuthLogin.html"
+	tlpFaviconSVG     = "favicon.svg"
 
 	// MainServiceID main servvice id
 	MainServiceID = "whoam.xyz"
@@ -56,9 +57,10 @@ func main() {
 	initUser()
 
 	tmpl := template.New("user")
-	box := packr.NewBox("./")
+	box := packr.NewBox("./web")
 	htmls := []string{
 		tlpUserOAuthLogin,
+		tlpFaviconSVG,
 	}
 
 	for _, v := range htmls {
@@ -81,6 +83,9 @@ func main() {
 		}
 		c.Next()
 	})
+	router.GET("/favicon.ico", inout(func(c *Context) error {
+		return c.OkHTML(tlpFaviconSVG, nil)
+	}))
 
 	v1 := router.Group("/v1")
 	v1.POST("/user/main/code", inout(PostMainCode))
