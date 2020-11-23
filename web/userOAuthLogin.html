@@ -148,7 +148,7 @@
     if (undefined == accessToken || '' == accessToken) {
       loginFragment()
     } else {
-      Get("http://127.0.0.1:18030/v1/user/main/state", { Authorization: accessToken },
+      Get("http://127.0.0.1:18030/v1/user/oauth/state?client_id=whoam.xyz", { Authorization: accessToken },
         function (status, response) {
           authFragment()
         })

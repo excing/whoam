@@ -172,16 +172,6 @@ func PostMainCode(c *Context) error {
 	return c.Ok(token)
 }
 
-// GetUserState get user login status
-func GetUserState(c *Context) error {
-	var count int64
-	token := c.GetHeader("Authorization")
-	if err := db.Where("access_token=?", token).Find(&UserToken{}).Count(&count).Error; err != nil || 0 == count {
-		return c.Any().Unauthorized("Invalid token, please login again")
-	}
-	return c.NoContent()
-}
-
 // UserOAuthLoginForm `/user/oauth/login` api form
 type UserOAuthLoginForm struct {
 }
@@ -268,14 +258,11 @@ type oauthStateForm struct {
 
 // GetOAuthState Get user authorization status
 func GetOAuthState(c *Context) error {
-	var form oauthStateForm
-	err := c.ParseForm(&form)
-	if err != nil {
-		return c.BadRequest(err.Error())
-	}
+	accessToken := c.GetHeader("Authorization")
+	clientID := c.Query("client_id")
 
-	var count int64
-	if db.Where("user_id=? AND service_id=? AND access_token=?", form.UserID, form.ClientID, form.AccessToken).Find(&UserToken{}).Error != nil && 0 == count {
+	var user UserToken
+	if db.Where("service_id=? AND access_token=?", clientID, accessToken).Find(&user).Error != nil || 0 == user.ID {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 

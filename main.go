@@ -88,12 +88,11 @@ func main() {
 	v1 := router.Group("/v1")
 	v1.POST("/user/main/code", inout(PostMainCode))
 	v1.POST("/user/main/auth", inout(PostUserAuth))
-	v1.GET("/user/main/state", inout(GetUserState))
 
 	v1.GET("/user/oauth/login", inout(PostUserOAuthLogin))
 	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
 	v1.GET("/user/oauth/token", inout(GetOAuthCode))
-	v1.POST("/user/oauth/state", inout(GetOAuthState))
+	v1.GET("/user/oauth/state", inout(GetOAuthState))
 
 	v1.POST("/servicer", inout(PostServicer))
 	v1.DELETE("/servicer", inout(DeleteServicer))
