@@ -82,11 +82,9 @@
 
     function loginCode() {
       const email = document.getElementById('email').value
-      const appId = "whoam.xyz"
       const state = Math.random().toString(36).slice(2)
       Post('http://127.0.0.1:18030/v1/user/main/code', {
         email: email,
-        appId: appId,
         state: state,
       }, function (status, response) {
         loginToken = response

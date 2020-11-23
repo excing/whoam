@@ -22,6 +22,9 @@ type Config struct {
 
 const (
 	tlpUserOAuthLogin = "userOAuthLogin.html"
+
+	// MainServiceID main servvice id
+	MainServiceID = "whoam.xyz"
 )
 
 var config Config

@@ -36,7 +36,7 @@ type UserToken struct {
 	ID          uint      `json:"-" gorm:"primarykey"`
 	CreatedAt   time.Time `json:"-"`
 	UserID      uint      `json:"userId"`
-	AppID       string    `json:"-"`
+	ServiceID   string    `json:"-"`
 	AccessToken string    `json:"accessToken"`
 	UpdateToken string    `json:"updateToken"`
 }
@@ -76,7 +76,6 @@ func initUser() {
 
 type userVerificationForm struct {
 	Email     string `schema:"email,required"`
-	AppID     string `schema:"-"`
 	State     string `schema:"state,required" note:"This parameter should be consistent with the state in /user/main/login"`
 	Code      string `schema:"code,required"`
 	Token     string `schema:"token,required"`
@@ -117,7 +116,7 @@ func PostUserAuth(c *Context) error {
 
 	userToken := UserToken{
 		UserID:      user.ID,
-		AppID:       userVerification.AppID,
+		ServiceID:   MainServiceID,
 		AccessToken: accessToken,
 		UpdateToken: updateToken,
 	}
@@ -133,7 +132,6 @@ func PostUserAuth(c *Context) error {
 
 type userLoginForm struct {
 	Email string `schema:"email,required"`
-	AppID string `schema:"appId,required"`
 	State string `schema:"state,required" note:"random number"`
 }
 
@@ -169,7 +167,7 @@ func PostMainCode(c *Context) error {
 
 	token := New64BitID()
 
-	userVerificationMap[token] = userVerificationForm{form.Email, form.AppID, form.State, code, token, time.Now().Unix() + timeoutUserVerification}
+	userVerificationMap[token] = userVerificationForm{form.Email, form.State, code, token, time.Now().Unix() + timeoutUserVerification}
 
 	return c.Ok(token)
 }
@@ -228,7 +226,7 @@ func PostUserOAuthAuth(c *Context) error {
 
 	oauthUserToken := UserToken{
 		UserID:      loginUserToken.UserID,
-		AppID:       form.ClientID,
+		ServiceID:   form.ClientID,
 		AccessToken: accessToken,
 		UpdateToken: updateToken,
 	}
