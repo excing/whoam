@@ -83,9 +83,7 @@ func main() {
 		}
 		c.Next()
 	})
-	router.GET("/favicon.ico", inout(func(c *Context) error {
-		return c.OkHTML(tlpFaviconSVG, nil)
-	}))
+	router.StaticFS("/favicon_io", packr.NewBox("./favicon_io"))
 
 	v1 := router.Group("/v1")
 	v1.POST("/user/main/code", inout(PostMainCode))
