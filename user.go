@@ -149,7 +149,7 @@ func PostMainCode(c *Context) error {
 		return c.BadRequest("Email is invalid")
 	}
 
-	code := RandNdigMbitString(4, 36)
+	code := New4BitID()
 	t, err := template.New("login").Parse(verificationTlp)
 	if err != nil {
 		return c.InternalServerError(err.Error())
@@ -237,7 +237,7 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	code := New64BitID()
+	code := New32bitID()
 
 	oauthTokenMap[code] = oauthUserToken
 
