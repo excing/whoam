@@ -275,7 +275,7 @@ func GetOAuthState(c *Context) error {
 	}
 
 	var count int64
-	if db.Where("user_id=? AND app_id=? AND access_token=?", form.UserID, form.ClientID, form.AccessToken).Find(&UserToken{}).Error != nil && 0 == count {
+	if db.Where("user_id=? AND service_id=? AND access_token=?", form.UserID, form.ClientID, form.AccessToken).Find(&UserToken{}).Error != nil && 0 == count {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
