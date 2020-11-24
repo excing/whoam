@@ -25,7 +25,7 @@
       document.getElementById('loginWithWhoam').hidden = false
       document.getElementById('logout').hidden = true
     }
-    var whoam = "http://localhost:18030/v1/user/oauth/login"
+    var whoam = "http://localhost:18030/user/oauth"
     var state = Math.random().toString(36).slice(2)
     var clientId = "example.com"
     var redirect_uri = "http://127.0.0.1:5500/example/redirect.html"
@@ -34,7 +34,7 @@
     document.getElementById('loginWithWhoam').href = href
 
     if (undefined != Cookies.get('accessToken')) {
-      axios.get('http://localhost:18030/v1/user/oauth/state?client_id=' + clientId, config = { headers: { 'Authorization': Cookies.get('accessToken') } })
+      axios.get('http://localhost:18030/api/v1/user/oauth/state?client_id=' + clientId, config = { headers: { 'Authorization': Cookies.get('accessToken') } })
         .then(function (response) {
           document.getElementById('user').innerText = '已登录'
           document.getElementById('loginWithWhoam').hidden = true

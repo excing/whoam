@@ -6,7 +6,7 @@ Redirecting...
   const url = new URL(url_string)
   const return_to = url.searchParams.get("return_to")
   const code = url.searchParams.get("code")
-  axios.get('http://localhost:18030/v1/user/oauth/token?code=' + code)
+  axios.get('http://localhost:18030/api/v1/user/oauth/token?code=' + code)
     .then(function (response) {
       var user = response.data
       Cookies.set('userId', user.userId)
