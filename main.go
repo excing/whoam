@@ -21,8 +21,8 @@ type Config struct {
 }
 
 const (
-	tlpUserOAuthLogin = "userOAuthLogin.html"
-	tlpUserOAuth      = "userOAuth.html"
+	tlpUserLogin = "userOAuthLogin.html"
+	tlpUserOAuth = "userOAuth.html"
 
 	tlpFaviconSVG = "favicon.svg"
 
@@ -61,7 +61,7 @@ func main() {
 	tmpl := template.New("user")
 	box := packr.NewBox("./web")
 	htmls := []string{
-		tlpUserOAuthLogin,
+		tlpUserLogin,
 		tlpUserOAuth,
 		tlpFaviconSVG,
 	}
@@ -88,17 +88,20 @@ func main() {
 	})
 	router.StaticFS("/favicon_io", packr.NewBox("./favicon_io"))
 
-	v1 := router.Group("/v1")
-	v1.POST("/user/main/code", inout(PostMainCode))
-	v1.POST("/user/main/auth", inout(PostUserAuth))
+	router.GET("/user/login", inout(PageUserLogin))
+	router.GET("/user/oauth", inout(PageUserOAuth))
 
-	v1.GET("/user/oauth/login", inout(PostUserOAuthLogin))
-	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
-	v1.GET("/user/oauth/token", inout(GetOAuthCode))
-	v1.GET("/user/oauth/state", inout(GetOAuthState))
+	apiV1 := router.Group("/api/v1")
 
-	v1.POST("/servicer", inout(PostServicer))
-	v1.DELETE("/servicer", inout(DeleteServicer))
+	apiV1.POST("/user/main/code", inout(PostMainCode))
+	apiV1.POST("/user/main/auth", inout(PostUserAuth))
+
+	apiV1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
+	apiV1.GET("/user/oauth/token", inout(GetOAuthCode))
+	apiV1.GET("/user/oauth/state", inout(GetOAuthState))
+
+	apiV1.POST("/servicer", inout(PostServicer))
+	apiV1.DELETE("/servicer", inout(DeleteServicer))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }

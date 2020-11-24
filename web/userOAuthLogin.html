@@ -70,7 +70,7 @@
     function loginCode() {
       const email = document.getElementById('email').value
       const state = Math.random().toString(36).slice(2)
-      Post('/v1/user/main/code', {
+      Post('/api/v1/user/main/code', {
         email: email,
         state: state,
       }, function (status, response) {
@@ -89,7 +89,7 @@
       const state = loginState
       const token = loginToken
       const code = document.getElementById('code').value
-      Post('/v1/user/main/auth', {
+      Post('/api/v1/user/main/auth', {
         email: email,
         state: state,
         token: token,
@@ -99,15 +99,7 @@
         Cookies.set('userId', user.userId)
         Cookies.set('accessToken', user.accessToken)
 
-        const url_string = window.location.href
-        const url = new URL(url_string)
-        const return_to = url.searchParams.get('return_to')
-        if (undefined == return_to || '' == return_to) {
-          return_to = document.referrer
-          window.location.href = window.location.href + "&return_to=" + return_to
-        } else {
-          window.location.href = window.location.href
-        }
+        window.location.href = "/user/oauth" + window.location.search + "&again=true"
       })
     }
   </script>

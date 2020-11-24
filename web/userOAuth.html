@@ -71,7 +71,7 @@
     function allowAuth() {
       const userId = Cookies.get('userId')
       const accessToken = Cookies.get('accessToken')
-      Post('http://127.0.0.1:18030/v1/user/oauth/auth', {
+      Post('/api/v1/user/oauth/auth', {
         userId: userId,
         accessToken: accessToken,
         clientId: clientId,

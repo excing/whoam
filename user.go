@@ -176,18 +176,28 @@ func PostMainCode(c *Context) error {
 type UserOAuthLoginForm struct {
 }
 
-// PostUserOAuthLogin requesting user's whoam identity
+// PageUserLogin user login page
+func PageUserLogin(c *Context) error {
+	return c.OkHTML(tlpUserLogin, nil)
+}
+
+// PageUserOAuth requesting user's whoam identity
 // GitHub: https://github.com/login?client_id=bfe378e98cde9624c98c&return_to=/login/oauth/authorize?client_id=bfe378e98cde9624c98c&redirect_uri=https://www.iconfont.cn/api/login/github/callback&state=123123sadh1as12
-// 58778ef7632c0d4876432bb4866206775c711d4c
-func PostUserOAuthLogin(c *Context) error {
-	fmt.Println(c.GetHeader("Cookie"))
-	accessToken, err := c.Cookie("accessToken")
-	if err != nil {
-		return c.OkHTML(tlpUserOAuthLogin, nil)
+func PageUserOAuth(c *Context) error {
+	if _, ok := c.GetQuery("clientId"); !ok {
+		return c.BadRequest("clientId is empty")
 	}
 
-	if !UserAuthorized(MainServiceID, accessToken) {
-		return c.OkHTML(tlpUserOAuthLogin, nil)
+	c.Writer.Header().Set("Cache-control", "private")
+
+	if accessToken, err := c.Cookie("accessToken"); err != nil || !UserAuthorized(MainServiceID, accessToken) {
+		returnTo, ok := c.GetQuery("return_to")
+		url := c.Request.URL
+		if !ok {
+			returnTo = c.GetHeader("Referer")
+			return c.MovedPermanently("/user/login?" + url.RawQuery + "&return_to=" + returnTo)
+		}
+		return c.MovedPermanently("/user/login?" + url.RawQuery)
 	}
 
 	return c.OkHTML(tlpUserOAuth, nil)
