@@ -1,12 +1,12 @@
 Redirecting...
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
-<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 <script>
   const url_string = window.location.href
   const url = new URL(url_string)
   const return_to = url.searchParams.get("return_to")
   const code = url.searchParams.get("code")
-  axios.get('http://127.0.0.1:18030/v1/user/oauth/token?code=' + code)
+  axios.get('http://localhost:18030/v1/user/oauth/token?code=' + code)
     .then(function (response) {
       var user = response.data
       Cookies.set('userId', user.userId)

@@ -17,8 +17,15 @@
 <body class="black">
   <div id='user'>未登录</div>
   <a id="loginWithWhoam">Login with whoam</a>
+  <button id="logout" onclick="onLogout()" hidden>退出</button>
   <script>
-    var whoam = "http://127.0.0.1:18030/v1/user/oauth/login"
+    function onLogout() {
+      Cookies.remove('accessToken')
+      document.getElementById('user').innerText = '未登录'
+      document.getElementById('loginWithWhoam').hidden = false
+      document.getElementById('logout').hidden = true
+    }
+    var whoam = "http://localhost:18030/v1/user/oauth/login"
     var state = Math.random().toString(36).slice(2)
     var clientId = "example.com"
     var redirect_uri = "http://127.0.0.1:5500/example/redirect.html"
@@ -27,9 +34,11 @@
     document.getElementById('loginWithWhoam').href = href
 
     if (undefined != Cookies.get('accessToken')) {
-      axios.get('http://127.0.0.1:18030/v1/user/oauth/state?client_id=' + clientId, config = { headers: { 'Authorization': Cookies.get('accessToken') } })
+      axios.get('http://localhost:18030/v1/user/oauth/state?client_id=' + clientId, config = { headers: { 'Authorization': Cookies.get('accessToken') } })
         .then(function (response) {
           document.getElementById('user').innerText = '已登录'
+          document.getElementById('loginWithWhoam').hidden = true
+          document.getElementById('logout').hidden = false
         })
     }
   </script>
