@@ -180,14 +180,17 @@ type UserOAuthLoginForm struct {
 // GitHub: https://github.com/login?client_id=bfe378e98cde9624c98c&return_to=/login/oauth/authorize?client_id=bfe378e98cde9624c98c&redirect_uri=https://www.iconfont.cn/api/login/github/callback&state=123123sadh1as12
 // 58778ef7632c0d4876432bb4866206775c711d4c
 func PostUserOAuthLogin(c *Context) error {
-	var form UserOAuthLoginForm
-	err := c.ParseForm(&form)
-
+	fmt.Println(c.GetHeader("Cookie"))
+	accessToken, err := c.Cookie("accessToken")
 	if err != nil {
-		return c.BadRequest(err.Error())
+		return c.OkHTML(tlpUserOAuthLogin, nil)
 	}
 
-	return c.OkHTML(tlpUserOAuthLogin, form)
+	if !UserAuthorized(MainServiceID, accessToken) {
+		return c.OkHTML(tlpUserOAuthLogin, nil)
+	}
+
+	return c.OkHTML(tlpUserOAuth, nil)
 }
 
 type oauthAuthForm struct {
@@ -267,4 +270,13 @@ func GetOAuthState(c *Context) error {
 	}
 
 	return c.NoContent()
+}
+
+// UserAuthorized Return true, if the specified clientID and accessToken are not found, return false
+func UserAuthorized(clientID string, accessToken string) bool {
+	var user UserToken
+	if db.Where("service_id=? AND access_token=?", clientID, accessToken).Find(&user).Error != nil || 0 == user.ID {
+		return false
+	}
+	return true
 }

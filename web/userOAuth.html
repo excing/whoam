@@ -10,15 +10,16 @@
   <link rel="manifest" href="/favicon_io/site.webmanifest">
   <title>OAuth授权-WHOAM</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ThreeTenth/css-theme@v0.1.1/colours.css" />
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
 </head>
 
 <body class="black">
-  <div id="login">
+  <div id="auth">
+    <div>请求授权</div>
+    <div id="clientId"></div>
     <form>
-      <div>Email: <input type="email" id="email" /></div>
-      <div>Code: <input type="text" id="code" /> <input onclick="loginCode()" type="button" value="获取登录授权码" /></div>
-      <input onclick="loginAuth()" type="button" value="登录" />
+      <input onclick="allowAuth()" type="button" value="允许授权" />
     </form>
   </div>
   <script>
@@ -67,49 +68,30 @@
       request.send();
     }
 
-    function loginCode() {
-      const email = document.getElementById('email').value
-      const state = Math.random().toString(36).slice(2)
-      Post('/v1/user/main/code', {
-        email: email,
+    function allowAuth() {
+      const userId = Cookies.get('userId')
+      const accessToken = Cookies.get('accessToken')
+      Post('http://127.0.0.1:18030/v1/user/oauth/auth', {
+        userId: userId,
+        accessToken: accessToken,
+        clientId: clientId,
         state: state,
       }, function (status, response) {
-        loginToken = response
-        loginState = state
-        alert('Sended')
-      }, function (status, response) {
-        alert(response);
-      }, function () {
-        alert('Network connection failed')
+        const code = response
+        window.location.href = redirect_uri + "?return_to=" + return_to + "&code=" + code
       })
     }
 
-    function loginAuth() {
-      const email = document.getElementById('email').value
-      const state = loginState
-      const token = loginToken
-      const code = document.getElementById('code').value
-      Post('/v1/user/main/auth', {
-        email: email,
-        state: state,
-        token: token,
-        code: code,
-      }, function (status, response) {
-        var user = JSON.parse(response)
-        Cookies.set('userId', user.userId)
-        Cookies.set('accessToken', user.accessToken)
+    var loginToken, loginState
+    var accessToken = Cookies.get('accessToken')
 
-        const url_string = window.location.href
-        const url = new URL(url_string)
-        const return_to = url.searchParams.get('return_to')
-        if (undefined == return_to || '' == return_to) {
-          return_to = document.referrer
-          window.location.href = window.location.href + "&return_to=" + return_to
-        } else {
-          window.location.href = window.location.href
-        }
-      })
-    }
+    const url_string = window.location.href
+    const url = new URL(url_string)
+    const return_to = url.searchParams.get('return_to')
+    const redirect_uri = url.searchParams.get('redirect_uri')
+    const state = url.searchParams.get('state')
+    const clientId = url.searchParams.get('clientId')
+    document.getElementById('clientId').innerText = clientId
   </script>
 </body>
 

@@ -22,7 +22,9 @@ type Config struct {
 
 const (
 	tlpUserOAuthLogin = "userOAuthLogin.html"
-	tlpFaviconSVG     = "favicon.svg"
+	tlpUserOAuth      = "userOAuth.html"
+
+	tlpFaviconSVG = "favicon.svg"
 
 	// MainServiceID main servvice id
 	MainServiceID = "whoam.xyz"
@@ -60,6 +62,7 @@ func main() {
 	box := packr.NewBox("./web")
 	htmls := []string{
 		tlpUserOAuthLogin,
+		tlpUserOAuth,
 		tlpFaviconSVG,
 	}
 
