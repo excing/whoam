@@ -65,6 +65,12 @@ func (p *Context) ParseForm(dst interface{}) error {
 	return nil
 }
 
+// MovedPermanently 301 MovedPermanently
+func (p *Context) MovedPermanently(location string) error {
+	p.Redirect(http.StatusMovedPermanently, location)
+	return nil
+}
+
 // BadRequest writes a BadRequest code(400) with the given string into the response body.
 // Bad input parameter. Error message should indicate which one and why.
 func (p *Context) BadRequest(format string, values ...interface{}) error {
