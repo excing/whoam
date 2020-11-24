@@ -22,11 +22,7 @@ var decoder = schema.NewDecoder()
 
 func inout(handle func(p *Context) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		proxy := &Context{c}
-
-		proxy = proxy.Any()
-
-		handle(proxy)
+		handle(&Context{c})
 	}
 }
 
@@ -41,15 +37,6 @@ func (p *Context) Render(code int, r render.Render) error {
 	}
 
 	return r.Render(p.Writer)
-}
-
-// Any Set to be accessible by anyone
-func (p *Context) Any() *Context {
-	p.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-	p.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	p.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-	p.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-	return p
 }
 
 // FormValue returns the form value of the specified key,

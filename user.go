@@ -208,7 +208,7 @@ func PostUserOAuthAuth(c *Context) error {
 
 	var loginUserToken UserToken
 	if err = db.Where("user_id=? AND access_token=?", form.UserID, form.AccessToken).Find(&loginUserToken).Error; err != nil || 0 == loginUserToken.ID {
-		return c.Any().Unauthorized("Invalid token, please login again")
+		return c.Unauthorized("Invalid token, please login again")
 	}
 
 	accessToken := New64BitID()
