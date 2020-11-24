@@ -29,7 +29,7 @@
     var state = Math.random().toString(36).slice(2)
     var clientId = "example.com"
     var redirect_uri = "http://127.0.0.1:5500/example/redirect.html"
-    var return_to = 'example/index.html'
+    var return_to = 'http://127.0.0.1:5500/example/index.html'
     var href = whoam + "?state=" + state + "&clientId=" + clientId + "&redirect_uri=" + redirect_uri + "&return_to=" + return_to
     document.getElementById('loginWithWhoam').href = href
 
