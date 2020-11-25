@@ -20,7 +20,8 @@ const (
 </body>`
 )
 
-const timeoutUserVerification = 900 // 用户验证码有效时长: 15分钟
+const timeoutUserVerification = 900           // 用户验证码有效时长: 15分钟
+const timeoutUserToken = 7 * 24 * time.Second // user token timeout: 7 day
 
 // User basic information, id, email and
 type User struct {
@@ -34,8 +35,9 @@ type User struct {
 type UserToken struct {
 	ID          uint      `json:"-" gorm:"primarykey"`
 	CreatedAt   time.Time `json:"-"`
+	ExpiredAt   int64     `json:"-"`
 	UserID      uint      `json:"userId"`
-	ServiceID   string    `json:"-"`
+	ServiceID   string    `json:"serviceId"`
 	AccessToken string    `json:"accessToken"`
 	UpdateToken string    `json:"updateToken"`
 }
@@ -90,7 +92,6 @@ func PostUserAuth(c *Context) error {
 		return c.Unauthorized("Verification failed: email is invalid")
 	}
 
-	// todo 记录用户验证成功
 	var user User
 	if db.Where("email=?", src.Email).Find(&user).Error != nil || 0 == user.ID {
 		user.Email = src.Email
@@ -103,6 +104,7 @@ func PostUserAuth(c *Context) error {
 	updateToken := New64BitID()
 
 	userToken := UserToken{
+		ExpiredAt:   time.Now().Add(timeoutUserToken).UnixNano(),
 		UserID:      user.ID,
 		ServiceID:   MainServiceID,
 		AccessToken: accessToken,
@@ -225,8 +227,7 @@ func PostUserOAuthAuth(c *Context) error {
 	}
 
 	code := New32bitID()
-	err = oauthCodeBox.SetVal(code, &oauthUserToken)
-	if err = db.Create(&oauthUserToken).Error; err != nil {
+	if err = oauthCodeBox.SetVal(code, &oauthUserToken); err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
@@ -249,6 +250,8 @@ func GetOAuthCode(c *Context) error {
 
 	oauthCodeBox.DelString(code)
 
+	oauthUserToken.ExpiredAt = time.Now().Add(timeoutUserToken).UnixNano()
+
 	if err = db.Create(&oauthUserToken).Error; err != nil {
 		return c.InternalServerError(err.Error())
 	}
@@ -268,7 +271,7 @@ func GetOAuthState(c *Context) error {
 	clientID := c.Query("client_id")
 
 	var user UserToken
-	if db.Where("service_id=? AND access_token=?", clientID, accessToken).Find(&user).Error != nil || 0 == user.ID {
+	if db.Where("service_id=? AND access_token=? AND ?<expired_at", clientID, accessToken, time.Now().UnixNano()).Find(&user).Error != nil || 0 == user.ID {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
