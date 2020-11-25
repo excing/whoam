@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 	"text/template"
@@ -41,45 +40,26 @@ type UserToken struct {
 	UpdateToken string    `json:"updateToken"`
 }
 
-// Return verification failure information,
-// if returns nil, it means verification is successful
-func (user *userVerificationForm) verifica(dst *userVerificationForm) error {
-	if user.UntilTime < time.Now().Unix() {
-		return errors.New("Verification failed: code is expired")
-	}
-	if user.Code != strings.ToTitle(dst.Code) {
-		return errors.New("Verification failed: code is invalid")
-	}
-	if user.Token != dst.Token {
-		return errors.New("Verification failed: token is invalid")
-	}
-	if user.State != dst.State {
-		return errors.New("Verification failed: state is invalid")
-	}
-	if user.Email != dst.Email {
-		return errors.New("Verification failed: email is invalid")
-	}
-
-	return nil
-}
-
 // 用户登录验证信息
-var userVerificationMap map[string]userVerificationForm
-var oauthTokenMap map[string]UserToken
+var userVerificaBox *Box
+var oauthCodeBox *Box
 
 func initUser() {
 	db.AutoMigrate(&User{}, &UserToken{})
 
-	userVerificationMap = make(map[string]userVerificationForm)
-	oauthTokenMap = make(map[string]UserToken)
+	// size: 3M
+	// default timeout: 15min
+	userVerificaBox = NewBox(3*1024*1024, 15*60)
+	// size: 3M
+	// default timeout: 5min
+	oauthCodeBox = NewBox(3*1024*1024, 5*60)
 }
 
 type userVerificationForm struct {
-	Email     string `schema:"email,required"`
-	State     string `schema:"state,required" note:"This parameter should be consistent with the state in /user/main/login"`
-	Code      string `schema:"code,required"`
-	Token     string `schema:"token,required"`
-	UntilTime int64  `schema:"-"`
+	Email string `schema:"email,required"`
+	State string `schema:"state,required" note:"This parameter should be consistent with the state in /user/main/login"`
+	Code  string `schema:"code,required"`
+	Token string `schema:"token,required"`
 }
 
 // PostUserAuth 用户登录授权验证
@@ -90,22 +70,30 @@ func PostUserAuth(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	userVerification, ok := userVerificationMap[dst.Token]
-
-	if !ok {
-		return c.Unauthorized("Verification failed: token is invalid")
-	}
-
-	err = userVerification.verifica(&dst)
+	var src userVerificationForm
+	err = userVerificaBox.Val(dst.Token, &src)
 
 	if err != nil {
-		return c.Unauthorized(err.Error())
+		return c.Unauthorized("Verification failed: token is invalid or code is expired")
+	}
+
+	if src.Code != strings.ToTitle(dst.Code) {
+		return c.Unauthorized("Verification failed: code is invalid")
+	}
+	if src.Token != dst.Token {
+		return c.Unauthorized("Verification failed: token is invalid")
+	}
+	if src.State != dst.State {
+		return c.Unauthorized("Verification failed: state is invalid")
+	}
+	if src.Email != dst.Email {
+		return c.Unauthorized("Verification failed: email is invalid")
 	}
 
 	// todo 记录用户验证成功
 	var user User
-	if db.Where("email=?", userVerification.Email).Find(&user).Error != nil || 0 == user.ID {
-		user.Email = userVerification.Email
+	if db.Where("email=?", src.Email).Find(&user).Error != nil || 0 == user.ID {
+		user.Email = src.Email
 		if err = db.Create(&user).Error; err != nil {
 			return c.InternalServerError(err.Error())
 		}
@@ -125,7 +113,7 @@ func PostUserAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	delete(userVerificationMap, dst.Token)
+	userVerificaBox.DelString(dst.Token)
 
 	return c.Ok(&userToken)
 }
@@ -166,8 +154,10 @@ func PostMainCode(c *Context) error {
 	}
 
 	token := New64BitID()
-
-	userVerificationMap[token] = userVerificationForm{form.Email, form.State, code, token, time.Now().Unix() + timeoutUserVerification}
+	err = userVerificaBox.SetVal(token, userVerificationForm{form.Email, form.State, code, token})
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
 
 	return c.Ok(token)
 }
@@ -234,13 +224,11 @@ func PostUserOAuthAuth(c *Context) error {
 		UpdateToken: updateToken,
 	}
 
+	code := New32bitID()
+	err = oauthCodeBox.SetVal(code, &oauthUserToken)
 	if err = db.Create(&oauthUserToken).Error; err != nil {
 		return c.InternalServerError(err.Error())
 	}
-
-	code := New32bitID()
-
-	oauthTokenMap[code] = oauthUserToken
 
 	return c.Ok(code)
 }
@@ -252,15 +240,20 @@ func GetOAuthCode(c *Context) error {
 		return c.BadRequest("code is empty")
 	}
 
-	userOAuthToken, ok := oauthTokenMap[code]
+	var oauthUserToken UserToken
 
-	if !ok {
+	err := oauthCodeBox.Val(code, &oauthUserToken)
+	if err != nil {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
-	delete(oauthTokenMap, code)
+	oauthCodeBox.DelString(code)
 
-	return c.Ok(&userOAuthToken)
+	if err = db.Create(&oauthUserToken).Error; err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.Ok(&oauthUserToken)
 }
 
 type oauthStateForm struct {
