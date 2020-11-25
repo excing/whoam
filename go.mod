@@ -3,6 +3,7 @@ module whoam.xyz
 go 1.15
 
 require (
+	github.com/coocood/freecache v1.1.1
 	github.com/excing/goflag v1.0.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/gobuffalo/packr/v2 v2.8.1
