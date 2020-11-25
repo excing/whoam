@@ -19,6 +19,11 @@ func NewBox(size int, defaultTimeout int) *Box {
 	return &Box{*freecache.NewCache(size), defaultTimeout}
 }
 
+// DelString return true, if delete the key fails, return false
+func (box *Box) DelString(key string) bool {
+	return box.Del([]byte(key))
+}
+
 // SetVal set key-value
 func (box *Box) SetVal(key string, val interface{}, timeout ...int) error {
 	bytes, err := json.Marshal(val)
