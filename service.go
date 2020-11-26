@@ -37,7 +37,7 @@ func InitService() {
 // ServiceAuthorize service authorize
 func ServiceAuthorize(c *Context, service *Service) bool {
 	token := c.GetHeader("Authorization")
-	if db.Where("service_token=?", token).Find(service).Error != nil || 0 == service.ID {
+	if db.Where("token=?", token).Find(service).Error != nil || 0 == service.ID {
 		return false
 	}
 
