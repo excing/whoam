@@ -43,7 +43,7 @@ func PostServicer(c *Context) error {
 	}
 
 	var service Service
-	if err = db.Where("serviceId=?", form.ServiceID).Find(&service).Error; err == nil && 0 != service.ID {
+	if err = db.Where("service_id=?", form.ServiceID).Find(&service).Error; err == nil && 0 != service.ID {
 		return c.Created("This service is already registered")
 	}
 
