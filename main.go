@@ -102,6 +102,7 @@ func main() {
 
 	apiV1.POST("/servicer", inout(PostServicer))
 	apiV1.DELETE("/servicer", inout(DeleteServicer))
+	apiV1.POST("/service/method", inout(PostServiceMethod))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }

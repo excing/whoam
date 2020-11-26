@@ -73,3 +73,17 @@ func DeleteServicer(c *Context) error {
 
 	return c.NoContent()
 }
+
+type postServiceMethodForm struct {
+}
+
+// PostServiceMethod post some service method
+func PostServiceMethod(c *Context) error {
+	var form postServiceMethodForm
+	err := c.ParseForm(&form)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	return c.NoContent()
+}
