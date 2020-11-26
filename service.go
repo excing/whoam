@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"gorm.io/gorm"
 )
 
@@ -31,7 +33,7 @@ type ServiceMethod struct {
 
 // InitService initialize service related business
 func InitService() {
-	db.AutoMigrate(&Service{})
+	db.AutoMigrate(&Service{}, &ServiceMethod{})
 }
 
 // ServiceAuthorize service authorize
@@ -110,5 +112,18 @@ func PostServiceMethod(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	return c.Ok(methods)
+	serviceMethods := make([]ServiceMethod, len(methods))
+	for i, method := range methods {
+		ss := strings.Split(method, ":")
+		name := ss[0]
+		scope := ss[1]
+		url := service.ServiceID + name
+		serviceMethods[i] = ServiceMethod{url, scope}
+	}
+
+	if err = db.Create(&serviceMethods).Error; err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.NoContent()
 }
