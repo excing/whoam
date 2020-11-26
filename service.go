@@ -61,7 +61,7 @@ func DeleteServicer(c *Context) error {
 	}
 
 	var service Service
-	err = db.Where("serviceId=?", form.ServiceID).Find(&service).Error
+	err = db.Where("service_id=? AND service_token=?", form.ServiceID, form.ServiceToken).Find(&service).Error
 	if err != nil {
 		return c.Forbidden("Service not registered")
 	}
