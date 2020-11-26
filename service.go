@@ -13,6 +13,21 @@ type Service struct {
 	ServiceToken string
 }
 
+// InitService initialize service related business
+func InitService() {
+	db.AutoMigrate(&Service{})
+}
+
+// ServiceAuthorize service authorize
+func ServiceAuthorize(c *Context, service *Service) bool {
+	token := c.GetHeader("Authorization")
+	if db.Where("service_token=?", token).Find(service).Error != nil || 0 == service.ID {
+		return false
+	}
+
+	return true
+}
+
 type postServiceForm struct {
 	ServiceID   string `schema:"serviceId,required"`
 	ServiceName string `schema:"serviceName,required"`
@@ -54,19 +69,12 @@ type deleteServiceForm struct {
 
 // DeleteServicer 注销服务
 func DeleteServicer(c *Context) error {
-	var form deleteServiceForm
-	err := c.ParseForm(&form)
-	if err != nil {
-		return c.BadRequest(err.Error())
-	}
-
 	var service Service
-	err = db.Where("service_id=? AND service_token=?", form.ServiceID, form.ServiceToken).Find(&service).Error
-	if err != nil {
-		return c.Forbidden("Service not registered")
+	if !ServiceAuthorize(c, &service) {
+		return c.Unauthorized("Invalid token, please refresh the access token with Referh_token")
 	}
 
-	err = db.Delete(&service).Error
+	err := db.Delete(&service).Error
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}

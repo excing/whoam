@@ -57,6 +57,7 @@ func main() {
 	}
 
 	initUser()
+	InitService()
 
 	tmpl := template.New("user")
 	box := packr.NewBox("./web")
