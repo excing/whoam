@@ -12,5 +12,7 @@ __debug_bin
 # debugger for chrome
 debug.log
 
+# project
 config.json
 test.db
+curl.sh
