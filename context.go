@@ -42,12 +42,19 @@ func (p *Context) Render(code int, r render.Render) error {
 // FormValue returns the form value of the specified key,
 // return error if the value does not exist or is empty
 func (p *Context) FormValue(key string) (string, error) {
-	if values, ok := p.GetPostFormArray(key); ok {
-		if "" != values[0] {
-			return values[0], nil
-		}
+	if values, ok := p.GetPostFormArray(key); ok && "" != values[0] {
+		return values[0], nil
 	}
 	return "", errors.New(key + " is empty")
+}
+
+// FormArray returns the form value array of the specified key,
+// return error if the value does not exist or is empty
+func (p *Context) FormArray(key string) ([]string, error) {
+	if values, ok := p.GetPostFormArray(key); ok && 0 != len(values) {
+		return values, nil
+	}
+	return nil, errors.New(key + " is empty")
 }
 
 // ParseForm writes form content to dst,
