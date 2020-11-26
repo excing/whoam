@@ -17,6 +17,7 @@ type Service struct {
 
 // ServiceMethod service method
 type ServiceMethod struct {
+	gorm.Model
 	Name  string
 	Scope string
 	// Fields []ServiceMethodField
@@ -118,7 +119,7 @@ func PostServiceMethod(c *Context) error {
 		name := ss[0]
 		scope := ss[1]
 		url := service.ServiceID + name
-		serviceMethods[i] = ServiceMethod{url, scope}
+		serviceMethods[i] = ServiceMethod{Name: url, Scope: scope}
 	}
 
 	if err = db.Create(&serviceMethods).Error; err != nil {
