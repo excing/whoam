@@ -7,11 +7,27 @@ import (
 // Service basic information of restful api service
 type Service struct {
 	gorm.Model
-	ServiceID    string
-	ServiceName  string
-	ServiceDesc  string
-	ServiceToken string
+	ServiceID string
+	Name      string
+	Token     string
+	Describe  string
 }
+
+// ServiceMethod service method
+type ServiceMethod struct {
+	Name  string
+	Scope string
+	// Fields []ServiceMethodField
+}
+
+// ServiceMethodField service method field
+// type ServiceMethodField struct {
+// 	Name     string
+// 	Kind     string
+// 	Default  string
+// 	Describe string
+// 	Required string
+// }
 
 // InitService initialize service related business
 func InitService() {
@@ -50,9 +66,9 @@ func PostServicer(c *Context) error {
 	token := New64BitID()
 
 	service.ServiceID = form.ServiceID
-	service.ServiceName = form.ServiceName
-	service.ServiceDesc = form.ServiceDesc
-	service.ServiceToken = token
+	service.Name = form.ServiceName
+	service.Describe = form.ServiceDesc
+	service.Token = token
 
 	err = db.Create(&service).Error
 	if err != nil {
@@ -82,16 +98,17 @@ func DeleteServicer(c *Context) error {
 	return c.NoContent()
 }
 
-type postServiceMethodForm struct {
-}
-
-// PostServiceMethod post some service method
+// PostServiceMethod receive service method submission
 func PostServiceMethod(c *Context) error {
-	var form postServiceMethodForm
-	err := c.ParseForm(&form)
+	var service Service
+	if !ServiceAuthorize(c, &service) {
+		return c.Unauthorized("Invalid token, please refresh the access token with Referh_token")
+	}
+
+	methods, err := c.FormArray("methods")
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
-	return c.NoContent()
+	return c.Ok(methods)
 }
