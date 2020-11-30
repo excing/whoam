@@ -56,7 +56,8 @@ func main() {
 		panic("failed to connect database")
 	}
 
-	initUser()
+	InitRAS()
+	InitUser()
 	InitService()
 
 	tmpl := template.New("user")
@@ -104,6 +105,12 @@ func main() {
 	apiV1.POST("/servicer", inout(PostServicer))
 	apiV1.DELETE("/servicer", inout(DeleteServicer))
 	apiV1.POST("/service/method", inout(PostServiceMethod))
+
+	apiV1.POST("/ras/new", inout(NewRAS))
+	// apiV1.POST("/ras/vote", inout(PostRASpaceVote))
+	// apiV1.GET("/ras/:id", inout(GetRASpace))
+	// apiV1.POST("/ras/rule", inout(NewRASpaceRule))
+	// apiV1.PUT("/ras/rule", inout(GetRASpaceRule))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }
