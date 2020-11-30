@@ -46,7 +46,8 @@ type UserToken struct {
 var userVerificaBox *Box
 var oauthCodeBox *Box
 
-func initUser() {
+// InitUser initialize User related
+func InitUser() {
 	db.AutoMigrate(&User{}, &UserToken{})
 
 	// size: 3M
@@ -55,6 +56,18 @@ func initUser() {
 	// size: 3M
 	// default timeout: 5min
 	oauthCodeBox = NewBox(3*1024*1024, 5*60)
+}
+
+// UserAuthorize user authorize
+func UserAuthorize(c *Context, userToken *UserToken) bool {
+	accessToken := c.GetHeader("Authorization")
+
+	var user UserToken
+	if db.Where("access_token=? AND ?<expired_at", accessToken, time.Now().UnixNano()).Find(&user).Error != nil || 0 == user.ID {
+		return false
+	}
+
+	return true
 }
 
 type userVerificationForm struct {
@@ -267,11 +280,8 @@ type oauthStateForm struct {
 
 // GetOAuthState Get user authorization status
 func GetOAuthState(c *Context) error {
-	accessToken := c.GetHeader("Authorization")
-	clientID := c.Query("client_id")
-
 	var user UserToken
-	if db.Where("service_id=? AND access_token=? AND ?<expired_at", clientID, accessToken, time.Now().UnixNano()).Find(&user).Error != nil || 0 == user.ID {
+	if UserAuthorize(c, &user) {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
