@@ -58,12 +58,9 @@ func InitUser() {
 	oauthCodeBox = NewBox(3*1024*1024, 5*60)
 }
 
-// UserAuthorize user authorize
-func UserAuthorize(c *Context, userToken *UserToken) bool {
-	accessToken := c.GetHeader("Authorization")
-
-	var user UserToken
-	if db.Where("access_token=? AND ?<expired_at", accessToken, time.Now().UnixNano()).Find(&user).Error != nil || 0 == user.ID {
+// UserAuthorize Return true, if the specified accessToken is not found, return false
+func UserAuthorize(accessToken string, userToken *UserToken) bool {
+	if db.Where("access_token=? AND ?<expired_at", accessToken, time.Now().UnixNano()).Find(&userToken).Error != nil || 0 == userToken.ID {
 		return false
 	}
 
@@ -195,7 +192,8 @@ func PageUserOAuth(c *Context) error {
 
 	c.Writer.Header().Set("Cache-control", "private")
 
-	if accessToken, err := c.Cookie("accessToken"); err != nil || !UserAuthorized(MainServiceID, accessToken) {
+	var userToken UserToken
+	if accessToken, err := c.Cookie("accessToken"); err != nil || !UserAuthorize(accessToken, &userToken) {
 		returnTo, ok := c.GetQuery("return_to")
 		url := c.Request.URL
 		if !ok {
@@ -281,18 +279,9 @@ type oauthStateForm struct {
 // GetOAuthState Get user authorization status
 func GetOAuthState(c *Context) error {
 	var user UserToken
-	if UserAuthorize(c, &user) {
+	if UserAuthorize(c.GetHeader("Authorization"), &user) {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
 	return c.NoContent()
-}
-
-// UserAuthorized Return true, if the specified clientID and accessToken are not found, return false
-func UserAuthorized(clientID string, accessToken string) bool {
-	var user UserToken
-	if db.Where("service_id=? AND access_token=?", clientID, accessToken).Find(&user).Error != nil || 0 == user.ID {
-		return false
-	}
-	return true
 }
