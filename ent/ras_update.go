@@ -12,6 +12,7 @@ import (
 	"github.com/facebook/ent/schema/field"
 	"whoam.xyz/ent/predicate"
 	"whoam.xyz/ent/ras"
+	"whoam.xyz/ent/user"
 )
 
 // RASUpdate is the builder for updating RAS entities.
@@ -51,9 +52,34 @@ func (ru *RASUpdate) SetState(r ras.State) *RASUpdate {
 	return ru
 }
 
+// SetOrganizerID sets the organizer edge to User by id.
+func (ru *RASUpdate) SetOrganizerID(id int) *RASUpdate {
+	ru.mutation.SetOrganizerID(id)
+	return ru
+}
+
+// SetNillableOrganizerID sets the organizer edge to User by id if the given value is not nil.
+func (ru *RASUpdate) SetNillableOrganizerID(id *int) *RASUpdate {
+	if id != nil {
+		ru = ru.SetOrganizerID(*id)
+	}
+	return ru
+}
+
+// SetOrganizer sets the organizer edge to User.
+func (ru *RASUpdate) SetOrganizer(u *User) *RASUpdate {
+	return ru.SetOrganizerID(u.ID)
+}
+
 // Mutation returns the RASMutation object of the builder.
 func (ru *RASUpdate) Mutation() *RASMutation {
 	return ru.mutation
+}
+
+// ClearOrganizer clears the "organizer" edge to type User.
+func (ru *RASUpdate) ClearOrganizer() *RASUpdate {
+	ru.mutation.ClearOrganizer()
+	return ru
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -169,6 +195,41 @@ func (ru *RASUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: ras.FieldState,
 		})
 	}
+	if ru.mutation.OrganizerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   ras.OrganizerTable,
+			Columns: []string{ras.OrganizerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.OrganizerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   ras.OrganizerTable,
+			Columns: []string{ras.OrganizerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ras.Label}
@@ -211,9 +272,34 @@ func (ruo *RASUpdateOne) SetState(r ras.State) *RASUpdateOne {
 	return ruo
 }
 
+// SetOrganizerID sets the organizer edge to User by id.
+func (ruo *RASUpdateOne) SetOrganizerID(id int) *RASUpdateOne {
+	ruo.mutation.SetOrganizerID(id)
+	return ruo
+}
+
+// SetNillableOrganizerID sets the organizer edge to User by id if the given value is not nil.
+func (ruo *RASUpdateOne) SetNillableOrganizerID(id *int) *RASUpdateOne {
+	if id != nil {
+		ruo = ruo.SetOrganizerID(*id)
+	}
+	return ruo
+}
+
+// SetOrganizer sets the organizer edge to User.
+func (ruo *RASUpdateOne) SetOrganizer(u *User) *RASUpdateOne {
+	return ruo.SetOrganizerID(u.ID)
+}
+
 // Mutation returns the RASMutation object of the builder.
 func (ruo *RASUpdateOne) Mutation() *RASMutation {
 	return ruo.mutation
+}
+
+// ClearOrganizer clears the "organizer" edge to type User.
+func (ruo *RASUpdateOne) ClearOrganizer() *RASUpdateOne {
+	ruo.mutation.ClearOrganizer()
+	return ruo
 }
 
 // Save executes the query and returns the updated entity.
@@ -326,6 +412,41 @@ func (ruo *RASUpdateOne) sqlSave(ctx context.Context) (_node *RAS, err error) {
 			Value:  value,
 			Column: ras.FieldState,
 		})
+	}
+	if ruo.mutation.OrganizerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   ras.OrganizerTable,
+			Columns: []string{ras.OrganizerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.OrganizerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   ras.OrganizerTable,
+			Columns: []string{ras.OrganizerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &RAS{config: ruo.config}
 	_spec.Assign = _node.assignValues

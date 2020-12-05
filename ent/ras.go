@@ -12,6 +12,7 @@ import (
 	"github.com/facebook/ent/dialect/sql"
 	"github.com/google/uuid"
 	"whoam.xyz/ent/ras"
+	"whoam.xyz/ent/user"
 )
 
 // RAS is the model entity for the RAS schema.
@@ -29,6 +30,33 @@ type RAS struct {
 	State ras.State `json:"state,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the RASQuery when eager-loading is set.
+	Edges         RASEdges `json:"edges"`
+	ras_organizer *int
+}
+
+// RASEdges holds the relations/edges for other nodes in the graph.
+type RASEdges struct {
+	// Organizer holds the value of the organizer edge.
+	Organizer *User
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// OrganizerOrErr returns the Organizer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e RASEdges) OrganizerOrErr() (*User, error) {
+	if e.loadedTypes[0] {
+		if e.Organizer == nil {
+			// The edge organizer was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
+		return e.Organizer, nil
+	}
+	return nil, &NotLoadedError{edge: "organizer"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -40,6 +68,13 @@ func (*RAS) scanValues() []interface{} {
 		&[]byte{},         // redirect_uri
 		&sql.NullString{}, // state
 		&sql.NullTime{},   // created_at
+	}
+}
+
+// fkValues returns the types for scanning foreign-keys values from sql.Rows.
+func (*RAS) fkValues() []interface{} {
+	return []interface{}{
+		&sql.NullInt64{}, // ras_organizer
 	}
 }
 
@@ -86,7 +121,21 @@ func (r *RAS) assignValues(values ...interface{}) error {
 	} else if value.Valid {
 		r.CreatedAt = value.Time
 	}
+	values = values[5:]
+	if len(values) == len(ras.ForeignKeys) {
+		if value, ok := values[0].(*sql.NullInt64); !ok {
+			return fmt.Errorf("unexpected type %T for edge-field ras_organizer", value)
+		} else if value.Valid {
+			r.ras_organizer = new(int)
+			*r.ras_organizer = int(value.Int64)
+		}
+	}
 	return nil
+}
+
+// QueryOrganizer queries the organizer edge of the RAS.
+func (r *RAS) QueryOrganizer() *UserQuery {
+	return (&RASClient{config: r.config}).QueryOrganizer(r)
 }
 
 // Update returns a builder for updating this RAS.

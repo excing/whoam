@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/facebook/ent/dialect/sql"
+	"github.com/facebook/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"whoam.xyz/ent/predicate"
 )
@@ -339,6 +340,34 @@ func CreatedAtLT(v time.Time) predicate.RAS {
 func CreatedAtLTE(v time.Time) predicate.RAS {
 	return predicate.RAS(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldCreatedAt), v))
+	})
+}
+
+// HasOrganizer applies the HasEdge predicate on the "organizer" edge.
+func HasOrganizer() predicate.RAS {
+	return predicate.RAS(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(OrganizerTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, OrganizerTable, OrganizerColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizerWith applies the HasEdge predicate on the "organizer" edge with a given conditions (other predicates).
+func HasOrganizerWith(preds ...predicate.User) predicate.RAS {
+	return predicate.RAS(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(OrganizerInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, OrganizerTable, OrganizerColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 

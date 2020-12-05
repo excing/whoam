@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"whoam.xyz/ent/predicate"
 	"whoam.xyz/ent/ras"
+	"whoam.xyz/ent/user"
 )
 
 // RASQuery is the builder for querying RAS entities.
@@ -24,6 +25,9 @@ type RASQuery struct {
 	order      []OrderFunc
 	unique     []string
 	predicates []predicate.RAS
+	// eager-loading edges.
+	withOrganizer *UserQuery
+	withFKs       bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -51,6 +55,28 @@ func (rq *RASQuery) Offset(offset int) *RASQuery {
 func (rq *RASQuery) Order(o ...OrderFunc) *RASQuery {
 	rq.order = append(rq.order, o...)
 	return rq
+}
+
+// QueryOrganizer chains the current query on the organizer edge.
+func (rq *RASQuery) QueryOrganizer() *UserQuery {
+	query := &UserQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery()
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ras.Table, ras.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, ras.OrganizerTable, ras.OrganizerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first RAS entity in the query. Returns *NotFoundError when no ras was found.
@@ -223,16 +249,28 @@ func (rq *RASQuery) Clone() *RASQuery {
 		return nil
 	}
 	return &RASQuery{
-		config:     rq.config,
-		limit:      rq.limit,
-		offset:     rq.offset,
-		order:      append([]OrderFunc{}, rq.order...),
-		unique:     append([]string{}, rq.unique...),
-		predicates: append([]predicate.RAS{}, rq.predicates...),
+		config:        rq.config,
+		limit:         rq.limit,
+		offset:        rq.offset,
+		order:         append([]OrderFunc{}, rq.order...),
+		unique:        append([]string{}, rq.unique...),
+		predicates:    append([]predicate.RAS{}, rq.predicates...),
+		withOrganizer: rq.withOrganizer.Clone(),
 		// clone intermediate query.
 		sql:  rq.sql.Clone(),
 		path: rq.path,
 	}
+}
+
+//  WithOrganizer tells the query-builder to eager-loads the nodes that are connected to
+// the "organizer" edge. The optional arguments used to configure the query builder of the edge.
+func (rq *RASQuery) WithOrganizer(opts ...func(*UserQuery)) *RASQuery {
+	query := &UserQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withOrganizer = query
+	return rq
 }
 
 // GroupBy used to group vertices by one or more fields/columns.
@@ -299,13 +337,26 @@ func (rq *RASQuery) prepareQuery(ctx context.Context) error {
 
 func (rq *RASQuery) sqlAll(ctx context.Context) ([]*RAS, error) {
 	var (
-		nodes = []*RAS{}
-		_spec = rq.querySpec()
+		nodes       = []*RAS{}
+		withFKs     = rq.withFKs
+		_spec       = rq.querySpec()
+		loadedTypes = [1]bool{
+			rq.withOrganizer != nil,
+		}
 	)
+	if rq.withOrganizer != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, ras.ForeignKeys...)
+	}
 	_spec.ScanValues = func() []interface{} {
 		node := &RAS{config: rq.config}
 		nodes = append(nodes, node)
 		values := node.scanValues()
+		if withFKs {
+			values = append(values, node.fkValues()...)
+		}
 		return values
 	}
 	_spec.Assign = func(values ...interface{}) error {
@@ -313,6 +364,7 @@ func (rq *RASQuery) sqlAll(ctx context.Context) ([]*RAS, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(values...)
 	}
 	if err := sqlgraph.QueryNodes(ctx, rq.driver, _spec); err != nil {
@@ -321,6 +373,32 @@ func (rq *RASQuery) sqlAll(ctx context.Context) ([]*RAS, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := rq.withOrganizer; query != nil {
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*RAS)
+		for i := range nodes {
+			if fk := nodes[i].ras_organizer; fk != nil {
+				ids = append(ids, *fk)
+				nodeids[*fk] = append(nodeids[*fk], nodes[i])
+			}
+		}
+		query.Where(user.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "ras_organizer" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Organizer = n
+			}
+		}
+	}
+
 	return nodes, nil
 }
 

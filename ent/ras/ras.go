@@ -25,8 +25,18 @@ const (
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 
+	// EdgeOrganizer holds the string denoting the organizer edge name in mutations.
+	EdgeOrganizer = "organizer"
+
 	// Table holds the table name of the ras in the database.
 	Table = "ra_ss"
+	// OrganizerTable is the table the holds the organizer relation/edge.
+	OrganizerTable = "ra_ss"
+	// OrganizerInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	OrganizerInverseTable = "users"
+	// OrganizerColumn is the table column denoting the organizer relation/edge.
+	OrganizerColumn = "ras_organizer"
 )
 
 // Columns holds all SQL columns for ras fields.
@@ -39,10 +49,20 @@ var Columns = []string{
 	FieldCreatedAt,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the RAS type.
+var ForeignKeys = []string{
+	"ras_organizer",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}

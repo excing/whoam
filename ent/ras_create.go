@@ -13,6 +13,7 @@ import (
 	"github.com/facebook/ent/schema/field"
 	"github.com/google/uuid"
 	"whoam.xyz/ent/ras"
+	"whoam.xyz/ent/user"
 )
 
 // RASCreate is the builder for creating a RAS entity.
@@ -64,6 +65,25 @@ func (rc *RASCreate) SetNillableCreatedAt(t *time.Time) *RASCreate {
 func (rc *RASCreate) SetID(u uuid.UUID) *RASCreate {
 	rc.mutation.SetID(u)
 	return rc
+}
+
+// SetOrganizerID sets the organizer edge to User by id.
+func (rc *RASCreate) SetOrganizerID(id int) *RASCreate {
+	rc.mutation.SetOrganizerID(id)
+	return rc
+}
+
+// SetNillableOrganizerID sets the organizer edge to User by id if the given value is not nil.
+func (rc *RASCreate) SetNillableOrganizerID(id *int) *RASCreate {
+	if id != nil {
+		rc = rc.SetOrganizerID(*id)
+	}
+	return rc
+}
+
+// SetOrganizer sets the organizer edge to User.
+func (rc *RASCreate) SetOrganizer(u *User) *RASCreate {
+	return rc.SetOrganizerID(u.ID)
 }
 
 // Mutation returns the RASMutation object of the builder.
@@ -218,6 +238,25 @@ func (rc *RASCreate) createSpec() (*RAS, *sqlgraph.CreateSpec) {
 			Column: ras.FieldCreatedAt,
 		})
 		_node.CreatedAt = value
+	}
+	if nodes := rc.mutation.OrganizerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   ras.OrganizerTable,
+			Columns: []string{ras.OrganizerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

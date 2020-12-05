@@ -16,19 +16,41 @@ var (
 		{Name: "redirect_uri", Type: field.TypeJSON},
 		{Name: "state", Type: field.TypeEnum, Enums: []string{"new", "allowed", "rejected", "abstained", "voided"}},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "ras_organizer", Type: field.TypeInt, Nullable: true},
 	}
 	// RaSsTable holds the schema information for the "ra_ss" table.
 	RaSsTable = &schema.Table{
-		Name:        "ra_ss",
-		Columns:     RaSsColumns,
-		PrimaryKey:  []*schema.Column{RaSsColumns[0]},
+		Name:       "ra_ss",
+		Columns:    RaSsColumns,
+		PrimaryKey: []*schema.Column{RaSsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:  "ra_ss_users_organizer",
+				Columns: []*schema.Column{RaSsColumns[6]},
+
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// UsersColumns holds the columns for the "users" table.
+	UsersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+	}
+	// UsersTable holds the schema information for the "users" table.
+	UsersTable = &schema.Table{
+		Name:        "users",
+		Columns:     UsersColumns,
+		PrimaryKey:  []*schema.Column{UsersColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		RaSsTable,
+		UsersTable,
 	}
 )
 
 func init() {
+	RaSsTable.ForeignKeys[0].RefTable = UsersTable
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/facebook/ent"
+	"github.com/facebook/ent/schema/edge"
 	"github.com/facebook/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -28,5 +29,7 @@ func (RAS) Fields() []ent.Field {
 
 // Edges of the RAS.
 func (RAS) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("organizer", User.Type).Unique(),
+	}
 }
