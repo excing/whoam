@@ -244,7 +244,7 @@ func TestUserLogin(t *testing.T) {
 	t.Log(blog, err)
 
 	signingKey := []byte(New16BitID())
-	accessToken, err := NewJWTToken(uint(aoli.ID), blog.ServiceID, timeoutAccessToken, signingKey)
+	accessToken, err := NewJWTToken(aoli.ID, blog.ServiceID, timeoutAccessToken, signingKey)
 
 	t.Log(accessToken, err)
 
