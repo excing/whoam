@@ -20,8 +20,9 @@ const (
 </body>`
 )
 
-const timeoutUserVerification = 900           // 用户验证码有效时长: 15分钟
-const timeoutUserToken = 7 * 24 * time.Second // user token timeout: 7 day
+const timeoutUserVerification = 900               // 用户验证码有效时长: 15分钟
+const timeoutRefreshToken = 30 * 24 * time.Minute // user refresh token timeout: 30day
+const timeoutAccessToken = 7 * time.Minute        // user access token timeout: 5min
 
 // User basic information, id, email and
 type User struct {
@@ -45,6 +46,7 @@ type UserToken struct {
 // 用户登录验证信息
 var userVerificaBox *Box
 var oauthCodeBox *Box
+var signingKey []byte
 
 // InitUser initialize User related
 func InitUser() {
@@ -56,13 +58,18 @@ func InitUser() {
 	// size: 3M
 	// default timeout: 5min
 	oauthCodeBox = NewBox(3*1024*1024, 5*60)
+
+	signingKey = []byte(New32BitID())
 }
 
 // UserAuthorize Return true, if the specified accessToken is not found, return false
 func UserAuthorize(accessToken string, userToken *UserToken) bool {
-	if db.Where("access_token=? AND ?<expired_at", accessToken, time.Now().UnixNano()).Find(&userToken).Error != nil || 0 == userToken.ID {
+	value, err := FilterJWTToken(accessToken, signingKey)
+	if err != nil {
 		return false
 	}
+
+	userToken.UserID = uint(value.OtherID)
 
 	return true
 }
@@ -110,11 +117,17 @@ func PostUserAuth(c *Context) error {
 		}
 	}
 
-	accessToken := New64BitID()
+	// accessToken := New64BitID()
+	accessToken, err := NewJWTToken(user.ID, MainServiceID, timeoutAccessToken, signingKey)
+
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
 	updateToken := New64BitID()
 
 	userToken := UserToken{
-		ExpiredAt:   time.Now().Add(timeoutUserToken).UnixNano(),
+		ExpiredAt:   time.Now().Add(timeoutRefreshToken).UnixNano(),
 		UserID:      user.ID,
 		ServiceID:   MainServiceID,
 		AccessToken: accessToken,
@@ -261,7 +274,7 @@ func GetOAuthCode(c *Context) error {
 
 	oauthCodeBox.DelString(code)
 
-	oauthUserToken.ExpiredAt = time.Now().Add(timeoutUserToken).UnixNano()
+	oauthUserToken.ExpiredAt = time.Now().Add(timeoutRefreshToken).UnixNano()
 
 	if err = db.Create(&oauthUserToken).Error; err != nil {
 		return c.InternalServerError(err.Error())
@@ -270,18 +283,44 @@ func GetOAuthCode(c *Context) error {
 	return c.Ok(&oauthUserToken)
 }
 
-type oauthStateForm struct {
-	UserID      string `schema:"userId,required"`
-	AccessToken string `schema:"accessToken,required"`
-	ClientID    string `schema:"clientId,required"`
-}
-
 // GetOAuthState Get user authorization status
 func GetOAuthState(c *Context) error {
 	var user UserToken
-	if UserAuthorize(c.GetHeader("Authorization"), &user) {
+	if !UserAuthorize(c.GetHeader("Authorization"), &user) {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
 	return c.NoContent()
+}
+
+type oauthRefreshForm struct {
+	UserID       uint   `schema:"userId,required"`
+	RefreshToken string `schema:"refreshToken,required"`
+	ClientID     string `schema:"clientId,required"`
+}
+
+// PostUserOAuthRefresh refresh user access token
+func PostUserOAuthRefresh(c *Context) error {
+	refreshToken, err := c.FormValue("refreshToken")
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	var userOAuth UserToken
+	if db.Where("update_token=? AND ?<expired_at", refreshToken, time.Now().UnixNano()).Find(&userOAuth).Error != nil || 0 == userOAuth.ID {
+		return c.Unauthorized("Invalid refreshToken, please login again")
+	}
+
+	accessToken, err := NewJWTToken(userOAuth.UserID, userOAuth.ServiceID, timeoutAccessToken, signingKey)
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	userOAuth.ExpiredAt = time.Now().Add(timeoutRefreshToken).UnixNano()
+	err = db.Model(&userOAuth).Update("expired_at", userOAuth.ExpiredAt).Error
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.Ok(accessToken)
 }
