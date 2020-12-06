@@ -101,6 +101,7 @@ func main() {
 	apiV1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
 	apiV1.GET("/user/oauth/token", inout(GetOAuthCode))
 	apiV1.GET("/user/oauth/state", inout(GetOAuthState))
+	apiV1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
 
 	apiV1.POST("/servicer", inout(PostServicer))
 	apiV1.DELETE("/servicer", inout(DeleteServicer))
