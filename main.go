@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"html/template"
 	"strconv"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/gobuffalo/packr/v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"whoam.xyz/ent"
 )
 
 // Config 配置文件信息
@@ -32,6 +34,8 @@ const (
 
 var config Config
 var db *gorm.DB
+var ctx context.Context
+var client *ent.Client
 
 func init() {
 	port := 8030
@@ -54,6 +58,18 @@ func main() {
 	db, err = gorm.Open(sqlite.Open(config.Db), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
+	}
+
+	client, err = ent.Open("sqlite3", "file:"+config.Db+"?_fk=1", nil)
+	if err != nil {
+		panic("failed to open database: " + err.Error())
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	err = client.Schema.Create(ctx)
+	if err != nil {
+		panic("failed to create schema: " + err.Error())
 	}
 
 	InitRAS()
