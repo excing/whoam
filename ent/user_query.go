@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +12,8 @@ import (
 	"github.com/facebook/ent/dialect/sql"
 	"github.com/facebook/ent/dialect/sql/sqlgraph"
 	"github.com/facebook/ent/schema/field"
+	"whoam.xyz/ent/oauth"
+	"whoam.xyz/ent/permission"
 	"whoam.xyz/ent/predicate"
 	"whoam.xyz/ent/user"
 )
@@ -23,6 +26,9 @@ type UserQuery struct {
 	order      []OrderFunc
 	unique     []string
 	predicates []predicate.User
+	// eager-loading edges.
+	withOauths      *OauthQuery
+	withPermissions *PermissionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -50,6 +56,50 @@ func (uq *UserQuery) Offset(offset int) *UserQuery {
 func (uq *UserQuery) Order(o ...OrderFunc) *UserQuery {
 	uq.order = append(uq.order, o...)
 	return uq
+}
+
+// QueryOauths chains the current query on the oauths edge.
+func (uq *UserQuery) QueryOauths() *OauthQuery {
+	query := &OauthQuery{config: uq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery()
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(oauth.Table, oauth.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthsTable, user.OauthsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPermissions chains the current query on the permissions edge.
+func (uq *UserQuery) QueryPermissions() *PermissionQuery {
+	query := &PermissionQuery{config: uq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery()
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(permission.Table, permission.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PermissionsTable, user.PermissionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first User entity in the query. Returns *NotFoundError when no user was found.
@@ -222,20 +272,57 @@ func (uq *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:     uq.config,
-		limit:      uq.limit,
-		offset:     uq.offset,
-		order:      append([]OrderFunc{}, uq.order...),
-		unique:     append([]string{}, uq.unique...),
-		predicates: append([]predicate.User{}, uq.predicates...),
+		config:          uq.config,
+		limit:           uq.limit,
+		offset:          uq.offset,
+		order:           append([]OrderFunc{}, uq.order...),
+		unique:          append([]string{}, uq.unique...),
+		predicates:      append([]predicate.User{}, uq.predicates...),
+		withOauths:      uq.withOauths.Clone(),
+		withPermissions: uq.withPermissions.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
 	}
 }
 
+//  WithOauths tells the query-builder to eager-loads the nodes that are connected to
+// the "oauths" edge. The optional arguments used to configure the query builder of the edge.
+func (uq *UserQuery) WithOauths(opts ...func(*OauthQuery)) *UserQuery {
+	query := &OauthQuery{config: uq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withOauths = query
+	return uq
+}
+
+//  WithPermissions tells the query-builder to eager-loads the nodes that are connected to
+// the "permissions" edge. The optional arguments used to configure the query builder of the edge.
+func (uq *UserQuery) WithPermissions(opts ...func(*PermissionQuery)) *UserQuery {
+	query := &PermissionQuery{config: uq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withPermissions = query
+	return uq
+}
+
 // GroupBy used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.User.Query().
+//		GroupBy(user.FieldCreatedAt).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 	group := &UserGroupBy{config: uq.config}
 	group.fields = append([]string{field}, fields...)
@@ -249,6 +336,17 @@ func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 }
 
 // Select one or more fields from the given query.
+//
+// Example:
+//
+//	var v []struct {
+//		CreatedAt time.Time `json:"created_at,omitempty"`
+//	}
+//
+//	client.User.Query().
+//		Select(user.FieldCreatedAt).
+//		Scan(ctx, &v)
+//
 func (uq *UserQuery) Select(field string, fields ...string) *UserSelect {
 	selector := &UserSelect{config: uq.config}
 	selector.fields = append([]string{field}, fields...)
@@ -274,8 +372,12 @@ func (uq *UserQuery) prepareQuery(ctx context.Context) error {
 
 func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 	var (
-		nodes = []*User{}
-		_spec = uq.querySpec()
+		nodes       = []*User{}
+		_spec       = uq.querySpec()
+		loadedTypes = [2]bool{
+			uq.withOauths != nil,
+			uq.withPermissions != nil,
+		}
 	)
 	_spec.ScanValues = func() []interface{} {
 		node := &User{config: uq.config}
@@ -288,6 +390,7 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(values...)
 	}
 	if err := sqlgraph.QueryNodes(ctx, uq.driver, _spec); err != nil {
@@ -296,6 +399,65 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := uq.withOauths; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*User)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Oauths = []*Oauth{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Oauth(func(s *sql.Selector) {
+			s.Where(sql.InValues(user.OauthsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.user_oauths
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "user_oauths" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "user_oauths" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Oauths = append(node.Edges.Oauths, n)
+		}
+	}
+
+	if query := uq.withPermissions; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*User)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Permissions = []*Permission{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Permission(func(s *sql.Selector) {
+			s.Where(sql.InValues(user.PermissionsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.user_permissions
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "user_permissions" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "user_permissions" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Permissions = append(node.Edges.Permissions, n)
+		}
+	}
+
 	return nodes, nil
 }
 

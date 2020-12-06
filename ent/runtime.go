@@ -6,14 +6,48 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"whoam.xyz/ent/oauth"
+	"whoam.xyz/ent/permission"
 	"whoam.xyz/ent/ras"
 	"whoam.xyz/ent/schema"
+	"whoam.xyz/ent/service"
+	"whoam.xyz/ent/user"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	methodFields := schema.Method{}.Fields()
+	_ = methodFields
+	oauthFields := schema.Oauth{}.Fields()
+	_ = oauthFields
+	// oauthDescCreatedAt is the schema descriptor for created_at field.
+	oauthDescCreatedAt := oauthFields[0].Descriptor()
+	// oauth.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oauth.DefaultCreatedAt = oauthDescCreatedAt.Default.(func() time.Time)
+	// oauthDescExpiredAt is the schema descriptor for expired_at field.
+	oauthDescExpiredAt := oauthFields[1].Descriptor()
+	// oauth.DefaultExpiredAt holds the default value on creation for the expired_at field.
+	oauth.DefaultExpiredAt = oauthDescExpiredAt.Default.(func() time.Time)
+	// oauth.UpdateDefaultExpiredAt holds the default value on update for the expired_at field.
+	oauth.UpdateDefaultExpiredAt = oauthDescExpiredAt.UpdateDefault.(func() time.Time)
+	// oauthDescRefreshToken is the schema descriptor for refresh_token field.
+	oauthDescRefreshToken := oauthFields[2].Descriptor()
+	// oauth.RefreshTokenValidator is a validator for the "refresh_token" field. It is called by the builders before save.
+	oauth.RefreshTokenValidator = oauthDescRefreshToken.Validators[0].(func(string) error)
+	permissionFields := schema.Permission{}.Fields()
+	_ = permissionFields
+	// permissionDescCreatedAt is the schema descriptor for created_at field.
+	permissionDescCreatedAt := permissionFields[0].Descriptor()
+	// permission.DefaultCreatedAt holds the default value on creation for the created_at field.
+	permission.DefaultCreatedAt = permissionDescCreatedAt.Default.(func() time.Time)
+	// permissionDescUpdatedAt is the schema descriptor for updated_at field.
+	permissionDescUpdatedAt := permissionFields[1].Descriptor()
+	// permission.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	permission.DefaultUpdatedAt = permissionDescUpdatedAt.Default.(func() time.Time)
+	// permission.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	permission.UpdateDefaultUpdatedAt = permissionDescUpdatedAt.UpdateDefault.(func() time.Time)
 	rasFields := schema.RAS{}.Fields()
 	_ = rasFields
 	// rasDescCreatedAt is the schema descriptor for created_at field.
@@ -24,4 +58,30 @@ func init() {
 	rasDescID := rasFields[0].Descriptor()
 	// ras.DefaultID holds the default value on creation for the id field.
 	ras.DefaultID = rasDescID.Default.(func() uuid.UUID)
+	serviceFields := schema.Service{}.Fields()
+	_ = serviceFields
+	// serviceDescDomain is the schema descriptor for domain field.
+	serviceDescDomain := serviceFields[3].Descriptor()
+	// service.DomainValidator is a validator for the "domain" field. It is called by the builders before save.
+	service.DomainValidator = serviceDescDomain.Validators[0].(func(string) error)
+	// serviceDescCloneURI is the schema descriptor for clone_uri field.
+	serviceDescCloneURI := serviceFields[4].Descriptor()
+	// service.CloneURIValidator is a validator for the "clone_uri" field. It is called by the builders before save.
+	service.CloneURIValidator = serviceDescCloneURI.Validators[0].(func(string) error)
+	userFields := schema.User{}.Fields()
+	_ = userFields
+	// userDescCreatedAt is the schema descriptor for created_at field.
+	userDescCreatedAt := userFields[0].Descriptor()
+	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
+	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
+	// userDescUpdatedAt is the schema descriptor for updated_at field.
+	userDescUpdatedAt := userFields[1].Descriptor()
+	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
+	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// userDescEmail is the schema descriptor for email field.
+	userDescEmail := userFields[2].Descriptor()
+	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
 }

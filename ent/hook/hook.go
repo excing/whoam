@@ -9,6 +9,45 @@ import (
 	"whoam.xyz/ent"
 )
 
+// The MethodFunc type is an adapter to allow the use of ordinary
+// function as Method mutator.
+type MethodFunc func(context.Context, *ent.MethodMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MethodFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.MethodMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MethodMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The OauthFunc type is an adapter to allow the use of ordinary
+// function as Oauth mutator.
+type OauthFunc func(context.Context, *ent.OauthMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OauthFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.OauthMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OauthMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The PermissionFunc type is an adapter to allow the use of ordinary
+// function as Permission mutator.
+type PermissionFunc func(context.Context, *ent.PermissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PermissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.PermissionMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PermissionMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The RASFunc type is an adapter to allow the use of ordinary
 // function as RAS mutator.
 type RASFunc func(context.Context, *ent.RASMutation) (ent.Value, error)
@@ -18,6 +57,19 @@ func (f RASFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 	mv, ok := m.(*ent.RASMutation)
 	if !ok {
 		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RASMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The ServiceFunc type is an adapter to allow the use of ordinary
+// function as Service mutator.
+type ServiceFunc func(context.Context, *ent.ServiceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ServiceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.ServiceMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ServiceMutation", m)
 	}
 	return f(ctx, mv)
 }

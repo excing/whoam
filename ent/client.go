@@ -9,7 +9,11 @@ import (
 
 	"whoam.xyz/ent/migrate"
 
+	"whoam.xyz/ent/method"
+	"whoam.xyz/ent/oauth"
+	"whoam.xyz/ent/permission"
 	"whoam.xyz/ent/ras"
+	"whoam.xyz/ent/service"
 	"whoam.xyz/ent/user"
 
 	"github.com/facebook/ent/dialect"
@@ -23,8 +27,16 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Method is the client for interacting with the Method builders.
+	Method *MethodClient
+	// Oauth is the client for interacting with the Oauth builders.
+	Oauth *OauthClient
+	// Permission is the client for interacting with the Permission builders.
+	Permission *PermissionClient
 	// RAS is the client for interacting with the RAS builders.
 	RAS *RASClient
+	// Service is the client for interacting with the Service builders.
+	Service *ServiceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -40,7 +52,11 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Method = NewMethodClient(c.config)
+	c.Oauth = NewOauthClient(c.config)
+	c.Permission = NewPermissionClient(c.config)
 	c.RAS = NewRASClient(c.config)
+	c.Service = NewServiceClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -72,10 +88,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	}
 	cfg := config{driver: tx, log: c.log, debug: c.debug, hooks: c.hooks}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		RAS:    NewRASClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Method:     NewMethodClient(cfg),
+		Oauth:      NewOauthClient(cfg),
+		Permission: NewPermissionClient(cfg),
+		RAS:        NewRASClient(cfg),
+		Service:    NewServiceClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -90,16 +110,20 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	}
 	cfg := config{driver: &txDriver{tx: tx, drv: c.driver}, log: c.log, debug: c.debug, hooks: c.hooks}
 	return &Tx{
-		config: cfg,
-		RAS:    NewRASClient(cfg),
-		User:   NewUserClient(cfg),
+		config:     cfg,
+		Method:     NewMethodClient(cfg),
+		Oauth:      NewOauthClient(cfg),
+		Permission: NewPermissionClient(cfg),
+		RAS:        NewRASClient(cfg),
+		Service:    NewServiceClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		RAS.
+//		Method.
 //		Query().
 //		Count(ctx)
 //
@@ -121,8 +145,372 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Method.Use(hooks...)
+	c.Oauth.Use(hooks...)
+	c.Permission.Use(hooks...)
 	c.RAS.Use(hooks...)
+	c.Service.Use(hooks...)
 	c.User.Use(hooks...)
+}
+
+// MethodClient is a client for the Method schema.
+type MethodClient struct {
+	config
+}
+
+// NewMethodClient returns a client for the Method from the given config.
+func NewMethodClient(c config) *MethodClient {
+	return &MethodClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `method.Hooks(f(g(h())))`.
+func (c *MethodClient) Use(hooks ...Hook) {
+	c.hooks.Method = append(c.hooks.Method, hooks...)
+}
+
+// Create returns a create builder for Method.
+func (c *MethodClient) Create() *MethodCreate {
+	mutation := newMethodMutation(c.config, OpCreate)
+	return &MethodCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Method entities.
+func (c *MethodClient) CreateBulk(builders ...*MethodCreate) *MethodCreateBulk {
+	return &MethodCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Method.
+func (c *MethodClient) Update() *MethodUpdate {
+	mutation := newMethodMutation(c.config, OpUpdate)
+	return &MethodUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MethodClient) UpdateOne(m *Method) *MethodUpdateOne {
+	mutation := newMethodMutation(c.config, OpUpdateOne, withMethod(m))
+	return &MethodUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MethodClient) UpdateOneID(id int) *MethodUpdateOne {
+	mutation := newMethodMutation(c.config, OpUpdateOne, withMethodID(id))
+	return &MethodUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Method.
+func (c *MethodClient) Delete() *MethodDelete {
+	mutation := newMethodMutation(c.config, OpDelete)
+	return &MethodDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *MethodClient) DeleteOne(m *Method) *MethodDeleteOne {
+	return c.DeleteOneID(m.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *MethodClient) DeleteOneID(id int) *MethodDeleteOne {
+	builder := c.Delete().Where(method.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MethodDeleteOne{builder}
+}
+
+// Query returns a query builder for Method.
+func (c *MethodClient) Query() *MethodQuery {
+	return &MethodQuery{config: c.config}
+}
+
+// Get returns a Method entity by its id.
+func (c *MethodClient) Get(ctx context.Context, id int) (*Method, error) {
+	return c.Query().Where(method.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MethodClient) GetX(ctx context.Context, id int) *Method {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Method.
+func (c *MethodClient) QueryOwner(m *Method) *ServiceQuery {
+	query := &ServiceQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(method.Table, method.FieldID, id),
+			sqlgraph.To(service.Table, service.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, method.OwnerTable, method.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *MethodClient) Hooks() []Hook {
+	return c.hooks.Method
+}
+
+// OauthClient is a client for the Oauth schema.
+type OauthClient struct {
+	config
+}
+
+// NewOauthClient returns a client for the Oauth from the given config.
+func NewOauthClient(c config) *OauthClient {
+	return &OauthClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oauth.Hooks(f(g(h())))`.
+func (c *OauthClient) Use(hooks ...Hook) {
+	c.hooks.Oauth = append(c.hooks.Oauth, hooks...)
+}
+
+// Create returns a create builder for Oauth.
+func (c *OauthClient) Create() *OauthCreate {
+	mutation := newOauthMutation(c.config, OpCreate)
+	return &OauthCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Oauth entities.
+func (c *OauthClient) CreateBulk(builders ...*OauthCreate) *OauthCreateBulk {
+	return &OauthCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Oauth.
+func (c *OauthClient) Update() *OauthUpdate {
+	mutation := newOauthMutation(c.config, OpUpdate)
+	return &OauthUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OauthClient) UpdateOne(o *Oauth) *OauthUpdateOne {
+	mutation := newOauthMutation(c.config, OpUpdateOne, withOauth(o))
+	return &OauthUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OauthClient) UpdateOneID(id int) *OauthUpdateOne {
+	mutation := newOauthMutation(c.config, OpUpdateOne, withOauthID(id))
+	return &OauthUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Oauth.
+func (c *OauthClient) Delete() *OauthDelete {
+	mutation := newOauthMutation(c.config, OpDelete)
+	return &OauthDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *OauthClient) DeleteOne(o *Oauth) *OauthDeleteOne {
+	return c.DeleteOneID(o.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *OauthClient) DeleteOneID(id int) *OauthDeleteOne {
+	builder := c.Delete().Where(oauth.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OauthDeleteOne{builder}
+}
+
+// Query returns a query builder for Oauth.
+func (c *OauthClient) Query() *OauthQuery {
+	return &OauthQuery{config: c.config}
+}
+
+// Get returns a Oauth entity by its id.
+func (c *OauthClient) Get(ctx context.Context, id int) (*Oauth, error) {
+	return c.Query().Where(oauth.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OauthClient) GetX(ctx context.Context, id int) *Oauth {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Oauth.
+func (c *OauthClient) QueryOwner(o *Oauth) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauth.Table, oauth.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauth.OwnerTable, oauth.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryService queries the service edge of a Oauth.
+func (c *OauthClient) QueryService(o *Oauth) *ServiceQuery {
+	query := &ServiceQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauth.Table, oauth.FieldID, id),
+			sqlgraph.To(service.Table, service.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, oauth.ServiceTable, oauth.ServiceColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OauthClient) Hooks() []Hook {
+	return c.hooks.Oauth
+}
+
+// PermissionClient is a client for the Permission schema.
+type PermissionClient struct {
+	config
+}
+
+// NewPermissionClient returns a client for the Permission from the given config.
+func NewPermissionClient(c config) *PermissionClient {
+	return &PermissionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `permission.Hooks(f(g(h())))`.
+func (c *PermissionClient) Use(hooks ...Hook) {
+	c.hooks.Permission = append(c.hooks.Permission, hooks...)
+}
+
+// Create returns a create builder for Permission.
+func (c *PermissionClient) Create() *PermissionCreate {
+	mutation := newPermissionMutation(c.config, OpCreate)
+	return &PermissionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Permission entities.
+func (c *PermissionClient) CreateBulk(builders ...*PermissionCreate) *PermissionCreateBulk {
+	return &PermissionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Permission.
+func (c *PermissionClient) Update() *PermissionUpdate {
+	mutation := newPermissionMutation(c.config, OpUpdate)
+	return &PermissionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PermissionClient) UpdateOne(pe *Permission) *PermissionUpdateOne {
+	mutation := newPermissionMutation(c.config, OpUpdateOne, withPermission(pe))
+	return &PermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PermissionClient) UpdateOneID(id int) *PermissionUpdateOne {
+	mutation := newPermissionMutation(c.config, OpUpdateOne, withPermissionID(id))
+	return &PermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Permission.
+func (c *PermissionClient) Delete() *PermissionDelete {
+	mutation := newPermissionMutation(c.config, OpDelete)
+	return &PermissionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *PermissionClient) DeleteOne(pe *Permission) *PermissionDeleteOne {
+	return c.DeleteOneID(pe.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *PermissionClient) DeleteOneID(id int) *PermissionDeleteOne {
+	builder := c.Delete().Where(permission.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PermissionDeleteOne{builder}
+}
+
+// Query returns a query builder for Permission.
+func (c *PermissionClient) Query() *PermissionQuery {
+	return &PermissionQuery{config: c.config}
+}
+
+// Get returns a Permission entity by its id.
+func (c *PermissionClient) Get(ctx context.Context, id int) (*Permission, error) {
+	return c.Query().Where(permission.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PermissionClient) GetX(ctx context.Context, id int) *Permission {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Permission.
+func (c *PermissionClient) QueryOwner(pe *Permission) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pe.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(permission.Table, permission.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, permission.OwnerTable, permission.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(pe.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryClient queries the client edge of a Permission.
+func (c *PermissionClient) QueryClient(pe *Permission) *ServiceQuery {
+	query := &ServiceQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pe.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(permission.Table, permission.FieldID, id),
+			sqlgraph.To(service.Table, service.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, permission.ClientTable, permission.ClientColumn),
+		)
+		fromV = sqlgraph.Neighbors(pe.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMethods queries the methods edge of a Permission.
+func (c *PermissionClient) QueryMethods(pe *Permission) *MethodQuery {
+	query := &MethodQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pe.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(permission.Table, permission.FieldID, id),
+			sqlgraph.To(method.Table, method.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, permission.MethodsTable, permission.MethodsColumn),
+		)
+		fromV = sqlgraph.Neighbors(pe.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PermissionClient) Hooks() []Hook {
+	return c.hooks.Permission
 }
 
 // RASClient is a client for the RAS schema.
@@ -229,6 +617,110 @@ func (c *RASClient) Hooks() []Hook {
 	return c.hooks.RAS
 }
 
+// ServiceClient is a client for the Service schema.
+type ServiceClient struct {
+	config
+}
+
+// NewServiceClient returns a client for the Service from the given config.
+func NewServiceClient(c config) *ServiceClient {
+	return &ServiceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `service.Hooks(f(g(h())))`.
+func (c *ServiceClient) Use(hooks ...Hook) {
+	c.hooks.Service = append(c.hooks.Service, hooks...)
+}
+
+// Create returns a create builder for Service.
+func (c *ServiceClient) Create() *ServiceCreate {
+	mutation := newServiceMutation(c.config, OpCreate)
+	return &ServiceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Service entities.
+func (c *ServiceClient) CreateBulk(builders ...*ServiceCreate) *ServiceCreateBulk {
+	return &ServiceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Service.
+func (c *ServiceClient) Update() *ServiceUpdate {
+	mutation := newServiceMutation(c.config, OpUpdate)
+	return &ServiceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ServiceClient) UpdateOne(s *Service) *ServiceUpdateOne {
+	mutation := newServiceMutation(c.config, OpUpdateOne, withService(s))
+	return &ServiceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ServiceClient) UpdateOneID(id int) *ServiceUpdateOne {
+	mutation := newServiceMutation(c.config, OpUpdateOne, withServiceID(id))
+	return &ServiceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Service.
+func (c *ServiceClient) Delete() *ServiceDelete {
+	mutation := newServiceMutation(c.config, OpDelete)
+	return &ServiceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *ServiceClient) DeleteOne(s *Service) *ServiceDeleteOne {
+	return c.DeleteOneID(s.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *ServiceClient) DeleteOneID(id int) *ServiceDeleteOne {
+	builder := c.Delete().Where(service.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ServiceDeleteOne{builder}
+}
+
+// Query returns a query builder for Service.
+func (c *ServiceClient) Query() *ServiceQuery {
+	return &ServiceQuery{config: c.config}
+}
+
+// Get returns a Service entity by its id.
+func (c *ServiceClient) Get(ctx context.Context, id int) (*Service, error) {
+	return c.Query().Where(service.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ServiceClient) GetX(ctx context.Context, id int) *Service {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryMethods queries the methods edge of a Service.
+func (c *ServiceClient) QueryMethods(s *Service) *MethodQuery {
+	query := &MethodQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(service.Table, service.FieldID, id),
+			sqlgraph.To(method.Table, method.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, service.MethodsTable, service.MethodsColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ServiceClient) Hooks() []Hook {
+	return c.hooks.Service
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -310,6 +802,38 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryOauths queries the oauths edge of a User.
+func (c *UserClient) QueryOauths(u *User) *OauthQuery {
+	query := &OauthQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(oauth.Table, oauth.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthsTable, user.OauthsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPermissions queries the permissions edge of a User.
+func (c *UserClient) QueryPermissions(u *User) *PermissionQuery {
+	query := &PermissionQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(permission.Table, permission.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PermissionsTable, user.PermissionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

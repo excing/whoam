@@ -12,8 +12,16 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Method is the client for interacting with the Method builders.
+	Method *MethodClient
+	// Oauth is the client for interacting with the Oauth builders.
+	Oauth *OauthClient
+	// Permission is the client for interacting with the Permission builders.
+	Permission *PermissionClient
 	// RAS is the client for interacting with the RAS builders.
 	RAS *RASClient
+	// Service is the client for interacting with the Service builders.
+	Service *ServiceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -151,7 +159,11 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Method = NewMethodClient(tx.config)
+	tx.Oauth = NewOauthClient(tx.config)
+	tx.Permission = NewPermissionClient(tx.config)
 	tx.RAS = NewRASClient(tx.config)
+	tx.Service = NewServiceClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 
@@ -162,7 +174,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: RAS.QueryXXX(), the query will be executed
+// applies a query, for example: Method.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

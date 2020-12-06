@@ -24,8 +24,12 @@ type config struct {
 
 // hooks per client, for fast access.
 type hooks struct {
-	RAS  []ent.Hook
-	User []ent.Hook
+	Method     []ent.Hook
+	Oauth      []ent.Hook
+	Permission []ent.Hook
+	RAS        []ent.Hook
+	Service    []ent.Hook
+	User       []ent.Hook
 }
 
 // Options applies the options on the config object.

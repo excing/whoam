@@ -6,8 +6,20 @@ import (
 	"github.com/facebook/ent/dialect/sql"
 )
 
+// Method is the predicate function for method builders.
+type Method func(*sql.Selector)
+
+// Oauth is the predicate function for oauth builders.
+type Oauth func(*sql.Selector)
+
+// Permission is the predicate function for permission builders.
+type Permission func(*sql.Selector)
+
 // RAS is the predicate function for ras builders.
 type RAS func(*sql.Selector)
+
+// Service is the predicate function for service builders.
+type Service func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
