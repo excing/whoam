@@ -22,7 +22,7 @@ const (
 
 const timeoutUserVerification = 900             // 用户验证码有效时长: 15分钟
 const timeoutRefreshToken = 30 * 24 * time.Hour // user refresh token timeout: 30day
-const timeoutAccessToken = 7 * time.Minute      // user access token timeout: 5min
+const timeoutAccessToken = 7 * time.Minute      // user access token timeout: 7min
 
 // User basic information, id, email and
 type User struct {
