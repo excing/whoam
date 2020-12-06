@@ -6,6 +6,9 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"whoam.xyz/ent/oauth"
+	"whoam.xyz/ent/user"
 )
 
 const (
@@ -24,25 +27,6 @@ const timeoutUserVerification = 900             // 用户验证码有效时长: 
 const timeoutRefreshToken = 30 * 24 * time.Hour // user refresh token timeout: 30day
 const timeoutAccessToken = 7 * time.Minute      // user access token timeout: 7min
 
-// User basic information, id, email and
-type User struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Email     string
-}
-
-// UserToken user login token
-type UserToken struct {
-	ID          uint      `json:"-" gorm:"primarykey"`
-	CreatedAt   time.Time `json:"-"`
-	ExpiredAt   int64     `json:"-"`
-	UserID      uint      `json:"userId"`
-	ServiceID   string    `json:"serviceId"`
-	AccessToken string    `json:"accessToken"`
-	UpdateToken string    `json:"updateToken"`
-}
-
 // 用户登录验证信息
 var userVerificaBox *Box
 var oauthCodeBox *Box
@@ -50,8 +34,6 @@ var signingKey []byte
 
 // InitUser initialize User related
 func InitUser() {
-	db.AutoMigrate(&User{}, &UserToken{})
-
 	// size: 3M
 	// default timeout: 15min
 	userVerificaBox = NewBox(3*1024*1024, 15*60)
@@ -63,13 +45,11 @@ func InitUser() {
 }
 
 // UserAuthorize Return true, if the specified accessToken is not found, return false
-func UserAuthorize(accessToken string, userToken *UserToken) bool {
-	value, err := FilterJWTToken(accessToken, signingKey)
+func UserAuthorize(accessToken string) bool {
+	_, err := FilterJWTToken(accessToken, signingKey)
 	if err != nil {
 		return false
 	}
-
-	userToken.UserID = uint(value.OtherID)
 
 	return true
 }
@@ -109,10 +89,11 @@ func PostUserAuth(c *Context) error {
 		return c.Unauthorized("Verification failed: email is invalid")
 	}
 
-	var user User
-	if db.Where("email=?", src.Email).Find(&user).Error != nil || 0 == user.ID {
+	user, err := client.User.Query().Where(user.EmailEQ(src.Email)).First(ctx)
+	if err != nil {
 		user.Email = src.Email
-		if err = db.Create(&user).Error; err != nil {
+		user, err = client.User.Create().SetEmail(src.Email).Save(ctx)
+		if err != nil {
 			return c.InternalServerError(err.Error())
 		}
 	}
@@ -124,23 +105,22 @@ func PostUserAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	updateToken := New64BitID()
+	refreshToken := New64BitID()
 
-	userToken := UserToken{
-		ExpiredAt:   time.Now().Add(timeoutRefreshToken).UnixNano(),
-		UserID:      user.ID,
-		ServiceID:   MainServiceID,
-		AccessToken: accessToken,
-		UpdateToken: updateToken,
-	}
+	_, err = client.Oauth.Create().
+		SetRefreshToken(refreshToken).
+		SetExpiredAt(time.Now().Add(timeoutRefreshToken)).
+		SetOwner(user).
+		SetService(MainServiceID).
+		Save(ctx)
 
-	if err = db.Create(&userToken).Error; err != nil {
+	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
 	userVerificaBox.DelString(dst.Token)
 
-	return c.Ok(&userToken)
+	return c.Ok(accessToken)
 }
 
 type userLoginForm struct {
@@ -205,8 +185,7 @@ func PageUserOAuth(c *Context) error {
 
 	c.Writer.Header().Set("Cache-control", "private")
 
-	var userToken UserToken
-	if accessToken, err := c.Cookie("accessToken"); err != nil || !UserAuthorize(accessToken, &userToken) {
+	if accessToken, err := c.Cookie("accessToken"); err != nil || !UserAuthorize(accessToken) {
 		returnTo, ok := c.GetQuery("return_to")
 		url := c.Request.URL
 		if !ok {
@@ -220,13 +199,13 @@ func PageUserOAuth(c *Context) error {
 }
 
 type oauthAuthForm struct {
-	UserID      string `schema:"userId,required"`
+	UserID      int    `schema:"userId,required"`
 	AccessToken string `schema:"accessToken,required"`
 	ClientID    string `schema:"clientId,required"`
 	State       string `schema:"state,required"`
 }
 
-// PostUserOAuthAuth whoam user authorized the request(/user/oauth/login request)
+// PostUserOAuthAuth whoam user authorized the request(/user/oauth/auth request)
 func PostUserOAuthAuth(c *Context) error {
 	var form oauthAuthForm
 	err := c.ParseForm(&form)
@@ -285,8 +264,7 @@ func GetOAuthCode(c *Context) error {
 
 // GetOAuthState Get user authorization status
 func GetOAuthState(c *Context) error {
-	var user UserToken
-	if !UserAuthorize(c.GetHeader("Authorization"), &user) {
+	if !UserAuthorize(c.GetHeader("Authorization")) {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
@@ -306,18 +284,31 @@ func PostUserOAuthRefresh(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	var userOAuth UserToken
-	if db.Where("update_token=? AND ?<expired_at", refreshToken, time.Now().UnixNano()).Find(&userOAuth).Error != nil || 0 == userOAuth.ID {
+	auth, err := client.Oauth.Query().
+		Where(oauth.RefreshTokenEQ(refreshToken)).
+		Where(oauth.ExpiredAtGT(time.Now())).
+		Only(ctx)
+	if err != nil {
 		return c.Unauthorized("Invalid refreshToken, please login again")
 	}
 
-	accessToken, err := NewJWTToken(userOAuth.UserID, userOAuth.ServiceID, timeoutAccessToken, signingKey)
+	authUser, err := auth.QueryOwner().Only(ctx)
+	if err != nil {
+		return c.Unauthorized("Invalid authorized user, please login again")
+	}
+
+	authService, err := auth.QueryService().Only(ctx)
+	if err != nil {
+		return c.Unauthorized("Invalid authorized service, please login again")
+	}
+
+	accessToken, err := NewJWTToken(authUser.ID, authService.ServiceID, timeoutAccessToken, signingKey)
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
-	userOAuth.ExpiredAt = time.Now().Add(timeoutRefreshToken).UnixNano()
-	err = db.Model(&userOAuth).Update("expired_at", userOAuth.ExpiredAt).Error
+	_, err = auth.Update().SetExpiredAt(time.Now().Add(timeoutRefreshToken)).Save(ctx)
+
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
