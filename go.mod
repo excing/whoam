@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/coocood/freecache v1.1.1
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/excing/goflag v1.0.1
 	github.com/facebook/ent v0.5.1
 	github.com/gin-gonic/gin v1.6.3
