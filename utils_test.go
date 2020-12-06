@@ -36,3 +36,11 @@ func TestNew128BitID(t *testing.T) {
 		t.Log(New128BitID())
 	}
 }
+
+func TestNewJWTToken(t *testing.T) {
+	signKey := []byte(New16BitID())
+	tokenString, err := NewJWTToken(3, "example.com", timeoutAccessToken, signKey)
+	t.Log(tokenString, err)
+	value, err := FilterJWTToken(tokenString, signKey)
+	t.Log(value, err)
+}

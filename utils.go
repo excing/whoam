@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"time"
 	"unsafe"
+
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 // ExternalIP 获取 IP
@@ -138,4 +140,51 @@ func New4BitID() string {
 // 10 numbers + 26 lowercase letters
 func New4bitID() string {
 	return RandNdigMbitString(4, 26, 36)
+}
+
+// StandardClaims whoam's standard claims struct
+type StandardClaims struct {
+	OtherID int64 `json:"oti"`
+	jwt.StandardClaims
+}
+
+// NewJWTToken create new JWT access token
+func NewJWTToken(userID uint, serviceID string, exp time.Duration, signingKey []byte) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, &StandardClaims{
+		int64(userID),
+		jwt.StandardClaims{
+			Audience:  serviceID,
+			ExpiresAt: time.Now().Add(exp).Unix(),
+		},
+	})
+
+	return token.SignedString(signingKey)
+}
+
+// FilterJWTToken return nil, if parse token failed, return error
+func FilterJWTToken(tokenString string, signingKey []byte) (*StandardClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return signingKey, nil
+	})
+
+	if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+			return nil, errors.New("That's not even a token")
+		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			// Token is either expired or not active yet
+			return nil, errors.New("Timing is everything")
+		} else {
+			return nil, errors.New("Couldn't handle this token:" + err.Error())
+		}
+	}
+
+	if !token.Valid {
+		return nil, errors.New("Couldn't handle this token")
+	}
+
+	if ve, ok := token.Claims.(*StandardClaims); ok {
+		return ve, nil
+	}
+
+	return nil, errors.New("Token claims isn't jwt.StandardClaims")
 }
