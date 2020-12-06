@@ -149,7 +149,7 @@ type StandardClaims struct {
 }
 
 // NewJWTToken create new JWT access token
-func NewJWTToken(userID uint, serviceID string, exp time.Duration, signingKey []byte) (string, error) {
+func NewJWTToken(userID int, serviceID string, exp time.Duration, signingKey []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, &StandardClaims{
 		int64(userID),
 		jwt.StandardClaims{
