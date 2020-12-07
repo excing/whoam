@@ -18,6 +18,10 @@
   <div id='user'>未登录</div>
   <a id="loginWithWhoam">Login with whoam</a>
   <button id="logout" onclick="onLogout()" hidden>退出</button>
+  <div style="margin-top: 20px;">
+    <button onclick="onRegisterService()">注册 example 服务</button>
+    <button onclick="addServiceMethod()">添加 example 方法</button>
+  </div>
   <script>
     function onLogout() {
       Cookies.remove('accessToken')
@@ -25,9 +29,66 @@
       document.getElementById('loginWithWhoam').hidden = false
       document.getElementById('logout').hidden = true
     }
+
+    function onRegisterService() {
+      const form = {
+        serviceId: clientId,
+        serviceName: 'whoam example',
+        serviceDesc: 'Sample program for whoam service',
+        domain: 'http://127.0.0.1:5500/example',
+        cloneUri: 'https://github.com/excing/whoam.git',
+      }
+      var urlEncodedData = "";
+      var urlEncodedDataPairs = [];
+      var name;
+
+      // 将数据对象转换为URL编码的键/值对数组。
+      for (name in form) {
+        urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(form[name]));
+      }
+
+      // 将配对合并为单个字符串，并将所有%编码的空格替换为
+      // “+”字符；匹配浏览器表单提交的行为。
+      urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
+      axios({
+        method: 'post',
+        url: 'http://localhost:18030/api/v1/service',
+        data: urlEncodedData,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      }).then(function (response) {
+        alert("Register successed")
+      })
+        .catch(function (error) {
+          alert("Register failured: " + error)
+        });
+    }
+
+    function addServiceMethod() {
+      axios.post('http://localhost:18030/api/v1/service/' + clientId + "/method", data = [
+        {
+          name: "upload",
+          route: '/file/upload',
+          subject: 'upload public file',
+          scope: 'public',
+        },
+        {
+          name: "download",
+          route: '/file/download',
+          subject: 'download file, this is private method',
+          scope: 'private',
+        }
+      ])
+        .then(function (response) {
+          alert("Register successed")
+        })
+        .catch(function (error) {
+          alert("Register failured: " + error)
+        });
+    }
+
     var whoam = "http://localhost:18030/user/oauth"
     var state = Math.random().toString(36).slice(2)
-    var clientId = "example.com"
+    var clientId = "example.whoam.xyz"
     var redirect_uri = "http://127.0.0.1:5500/example/redirect.html"
     var return_to = 'http://127.0.0.1:5500/example/index.html'
     var href = whoam + "?state=" + state + "&clientId=" + clientId + "&redirect_uri=" + redirect_uri + "&return_to=" + return_to
