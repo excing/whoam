@@ -62,6 +62,10 @@ func init() {
 	serviceDescCloneURI := serviceFields[4].Descriptor()
 	// service.CloneURIValidator is a validator for the "clone_uri" field. It is called by the builders before save.
 	service.CloneURIValidator = serviceDescCloneURI.Validators[0].(func(string) error)
+	// serviceDescID is the schema descriptor for id field.
+	serviceDescID := serviceFields[0].Descriptor()
+	// service.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	service.IDValidator = serviceDescID.Validators[0].(func(string) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.

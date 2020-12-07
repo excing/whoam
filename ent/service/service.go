@@ -7,8 +7,6 @@ const (
 	Label = "service"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldServiceID holds the string denoting the service_id field in the database.
-	FieldServiceID = "service_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldSubject holds the string denoting the subject field in the database.
@@ -35,7 +33,6 @@ const (
 // Columns holds all SQL columns for service fields.
 var Columns = []string{
 	FieldID,
-	FieldServiceID,
 	FieldName,
 	FieldSubject,
 	FieldDomain,
@@ -57,4 +54,6 @@ var (
 	DomainValidator func(string) error
 	// CloneURIValidator is a validator for the "clone_uri" field. It is called by the builders before save.
 	CloneURIValidator func(string) error
+	// IDValidator is a validator for the "id" field. It is called by the builders before save.
+	IDValidator func(string) error
 )

@@ -14,9 +14,7 @@ import (
 type Service struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
-	// ServiceID holds the value of the "service_id" field.
-	ServiceID string `json:"service_id,omitempty"`
+	ID string `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Subject holds the value of the "subject" field.
@@ -51,8 +49,7 @@ func (e ServiceEdges) MethodsOrErr() ([]*Method, error) {
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Service) scanValues() []interface{} {
 	return []interface{}{
-		&sql.NullInt64{},  // id
-		&sql.NullString{}, // service_id
+		&sql.NullString{}, // id
 		&sql.NullString{}, // name
 		&sql.NullString{}, // subject
 		&sql.NullString{}, // domain
@@ -66,34 +63,29 @@ func (s *Service) assignValues(values ...interface{}) error {
 	if m, n := len(values), len(service.Columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
-	value, ok := values[0].(*sql.NullInt64)
-	if !ok {
-		return fmt.Errorf("unexpected type %T for field id", value)
+	if value, ok := values[0].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field id", values[0])
+	} else if value.Valid {
+		s.ID = value.String
 	}
-	s.ID = int(value.Int64)
 	values = values[1:]
 	if value, ok := values[0].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field service_id", values[0])
-	} else if value.Valid {
-		s.ServiceID = value.String
-	}
-	if value, ok := values[1].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field name", values[1])
+		return fmt.Errorf("unexpected type %T for field name", values[0])
 	} else if value.Valid {
 		s.Name = value.String
 	}
-	if value, ok := values[2].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field subject", values[2])
+	if value, ok := values[1].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field subject", values[1])
 	} else if value.Valid {
 		s.Subject = value.String
 	}
-	if value, ok := values[3].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field domain", values[3])
+	if value, ok := values[2].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field domain", values[2])
 	} else if value.Valid {
 		s.Domain = value.String
 	}
-	if value, ok := values[4].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field clone_uri", values[4])
+	if value, ok := values[3].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field clone_uri", values[3])
 	} else if value.Valid {
 		s.CloneURI = value.String
 	}
@@ -128,8 +120,6 @@ func (s *Service) String() string {
 	var builder strings.Builder
 	builder.WriteString("Service(")
 	builder.WriteString(fmt.Sprintf("id=%v", s.ID))
-	builder.WriteString(", service_id=")
-	builder.WriteString(s.ServiceID)
 	builder.WriteString(", name=")
 	builder.WriteString(s.Name)
 	builder.WriteString(", subject=")

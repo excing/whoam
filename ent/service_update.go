@@ -27,12 +27,6 @@ func (su *ServiceUpdate) Where(ps ...predicate.Service) *ServiceUpdate {
 	return su
 }
 
-// SetServiceID sets the service_id field.
-func (su *ServiceUpdate) SetServiceID(s string) *ServiceUpdate {
-	su.mutation.SetServiceID(s)
-	return su
-}
-
 // SetName sets the name field.
 func (su *ServiceUpdate) SetName(s string) *ServiceUpdate {
 	su.mutation.SetName(s)
@@ -176,7 +170,7 @@ func (su *ServiceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Table:   service.Table,
 			Columns: service.Columns,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: service.FieldID,
 			},
 		},
@@ -187,13 +181,6 @@ func (su *ServiceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := su.mutation.ServiceID(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: service.FieldServiceID,
-		})
 	}
 	if value, ok := su.mutation.Name(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
@@ -293,12 +280,6 @@ type ServiceUpdateOne struct {
 	config
 	hooks    []Hook
 	mutation *ServiceMutation
-}
-
-// SetServiceID sets the service_id field.
-func (suo *ServiceUpdateOne) SetServiceID(s string) *ServiceUpdateOne {
-	suo.mutation.SetServiceID(s)
-	return suo
 }
 
 // SetName sets the name field.
@@ -444,7 +425,7 @@ func (suo *ServiceUpdateOne) sqlSave(ctx context.Context) (_node *Service, err e
 			Table:   service.Table,
 			Columns: service.Columns,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: service.FieldID,
 			},
 		},
@@ -454,13 +435,6 @@ func (suo *ServiceUpdateOne) sqlSave(ctx context.Context) (_node *Service, err e
 		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing Service.ID for update")}
 	}
 	_spec.Node.ID.Value = id
-	if value, ok := suo.mutation.ServiceID(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: service.FieldServiceID,
-		})
-	}
 	if value, ok := suo.mutation.Name(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,

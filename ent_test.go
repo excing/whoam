@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"testing"
+	"time"
 
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/enttest"
@@ -39,9 +40,10 @@ func TestCreateUser(t *testing.T) {
 func TestCreateService(t *testing.T) {
 	ctx, client := CreateClient(t)
 	cloud, err := client.Service.Create().
-		SetServiceID("cloud.com").
+		SetID("cloud.com").
 		SetName("cloud service").
 		SetSubject("Support file storage, read-write and update services").
+		SetDomain("https://xcloud.xzy").
 		SetCloneURI("https://github.com/ThreeTenth/Cloud.git").
 		Save(ctx)
 
@@ -66,7 +68,7 @@ func TestCreateMethods(t *testing.T) {
 	t.Log(download, err)
 
 	cloud, err := client.Service.Create().
-		SetServiceID("cloud.com").
+		SetID("cloud.com").
 		SetName("cloud service").
 		SetSubject("Support file storage, read-write and update services").
 		SetDomain("https://xcloud.xzy").
@@ -94,7 +96,7 @@ func TestCreateOAuth(t *testing.T) {
 	t.Log(aoli, err)
 
 	cloud, err := client.Service.Create().
-		SetServiceID("cloud.com").
+		SetID("cloud.com").
 		SetName("cloud service").
 		SetSubject("Support file storage, read-write and update services").
 		SetDomain("https://xcloud.xzy").
@@ -132,7 +134,7 @@ func TestCreatePermission(t *testing.T) {
 	ctx, client := CreateClient(t)
 
 	cloud, err := client.Service.Create().
-		SetServiceID("cloud.com").
+		SetID("cloud.com").
 		SetName("cloud service").
 		SetSubject("Support file storage, read-write and update services").
 		SetDomain("https://xcloud.xzy").
@@ -163,7 +165,7 @@ func TestCreatePermission(t *testing.T) {
 	t.Log(methods, err)
 
 	blog, err := client.Service.Create().
-		SetServiceID("blog.com").
+		SetID("blog.com").
 		SetName("blog service").
 		SetDomain("https://xblog.xzy").
 		SetCloneURI("https://github.com/excing/BlogZoneServer.git").
@@ -195,7 +197,7 @@ func TestUserLogin(t *testing.T) {
 	ctx, client := CreateClient(t)
 
 	cloud, err := client.Service.Create().
-		SetServiceID("cloud.com").
+		SetID("cloud.com").
 		SetName("cloud service").
 		SetSubject("Support file storage, read-write and update services").
 		SetDomain("https://xcloud.xzy").
@@ -234,7 +236,7 @@ func TestUserLogin(t *testing.T) {
 	t.Log(kra, err)
 
 	blog, err := client.Service.Create().
-		SetServiceID("blog.com").
+		SetID("blog.com").
 		SetName("blog service").
 		SetDomain("https://xblog.xzy").
 		SetCloneURI("https://github.com/excing/BlogZoneServer.git").
@@ -244,12 +246,16 @@ func TestUserLogin(t *testing.T) {
 	t.Log(blog, err)
 
 	signingKey := []byte(New16BitID())
-	accessToken, err := NewJWTToken(aoli.ID, blog.ServiceID, timeoutAccessToken, signingKey)
+	accessToken, err := NewJWTToken(aoli.ID, blog.ID, timeoutAccessToken, signingKey)
 
 	t.Log(accessToken, err)
 
 	mainToken := New64BitID()
-	oauth, err := client.Oauth.Create().SetMainToken(mainToken).SetOwner(aoli).SetService(blog).Save(ctx)
+	oauth, err := client.Oauth.Create().
+		SetMainToken(mainToken).
+		SetExpiredAt(time.Now().Add(timeoutAccessToken)).
+		SetOwner(aoli).SetService(blog).
+		Save(ctx)
 
 	t.Log(oauth, err)
 
@@ -261,11 +267,11 @@ func TestUserLogin(t *testing.T) {
 
 	t.Log(token, err)
 
-	t.Logf("is blog service? %v", token.Audience == blog.ServiceID)
+	t.Logf("is blog service? %v", token.Audience == blog.ID)
 
 	queryPermission := client.Permission.Query().
 		Where(permission.HasOwnerWith(user.IDEQ(int(token.OtherID)))).
-		Where(permission.HasClientWith(service.ServiceIDEQ(token.Audience)))
+		Where(permission.HasClientWith(service.IDEQ(token.Audience)))
 
 	t.Log(queryPermission.All(ctx))
 

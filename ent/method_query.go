@@ -374,8 +374,8 @@ func (mq *MethodQuery) sqlAll(ctx context.Context) ([]*Method, error) {
 	}
 
 	if query := mq.withOwner; query != nil {
-		ids := make([]int, 0, len(nodes))
-		nodeids := make(map[int][]*Method)
+		ids := make([]string, 0, len(nodes))
+		nodeids := make(map[string][]*Method)
 		for i := range nodes {
 			if fk := nodes[i].service_methods; fk != nil {
 				ids = append(ids, *fk)

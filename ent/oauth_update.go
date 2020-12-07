@@ -48,7 +48,7 @@ func (ou *OauthUpdate) SetOwner(u *User) *OauthUpdate {
 }
 
 // SetServiceID sets the service edge to Service by id.
-func (ou *OauthUpdate) SetServiceID(id int) *OauthUpdate {
+func (ou *OauthUpdate) SetServiceID(id string) *OauthUpdate {
 	ou.mutation.SetServiceID(id)
 	return ou
 }
@@ -212,7 +212,7 @@ func (ou *OauthUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -228,7 +228,7 @@ func (ou *OauthUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -274,7 +274,7 @@ func (ouo *OauthUpdateOne) SetOwner(u *User) *OauthUpdateOne {
 }
 
 // SetServiceID sets the service edge to Service by id.
-func (ouo *OauthUpdateOne) SetServiceID(id int) *OauthUpdateOne {
+func (ouo *OauthUpdateOne) SetServiceID(id string) *OauthUpdateOne {
 	ouo.mutation.SetServiceID(id)
 	return ouo
 }
@@ -436,7 +436,7 @@ func (ouo *OauthUpdateOne) sqlSave(ctx context.Context) (_node *Oauth, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -452,7 +452,7 @@ func (ouo *OauthUpdateOne) sqlSave(ctx context.Context) (_node *Oauth, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},

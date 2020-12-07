@@ -16,7 +16,10 @@ type Service struct {
 // Fields of the Service.
 func (Service) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("service_id").Unique(),
+		field.String("id").
+			NotEmpty().
+			Unique().
+			Immutable(),
 		field.String("name"),
 		field.String("subject"),
 		field.String("domain").Match(regexp.MustCompile(`(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)`)),

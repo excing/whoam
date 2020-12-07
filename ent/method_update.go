@@ -55,7 +55,7 @@ func (mu *MethodUpdate) SetNillableScope(m *method.Scope) *MethodUpdate {
 }
 
 // SetOwnerID sets the owner edge to Service by id.
-func (mu *MethodUpdate) SetOwnerID(id int) *MethodUpdate {
+func (mu *MethodUpdate) SetOwnerID(id string) *MethodUpdate {
 	mu.mutation.SetOwnerID(id)
 	return mu
 }
@@ -194,7 +194,7 @@ func (mu *MethodUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -210,7 +210,7 @@ func (mu *MethodUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -265,7 +265,7 @@ func (muo *MethodUpdateOne) SetNillableScope(m *method.Scope) *MethodUpdateOne {
 }
 
 // SetOwnerID sets the owner edge to Service by id.
-func (muo *MethodUpdateOne) SetOwnerID(id int) *MethodUpdateOne {
+func (muo *MethodUpdateOne) SetOwnerID(id string) *MethodUpdateOne {
 	muo.mutation.SetOwnerID(id)
 	return muo
 }
@@ -402,7 +402,7 @@ func (muo *MethodUpdateOne) sqlSave(ctx context.Context) (_node *Method, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -418,7 +418,7 @@ func (muo *MethodUpdateOne) sqlSave(ctx context.Context) (_node *Method, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},

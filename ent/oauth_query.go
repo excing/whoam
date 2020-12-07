@@ -436,8 +436,8 @@ func (oq *OauthQuery) sqlAll(ctx context.Context) ([]*Oauth, error) {
 	}
 
 	if query := oq.withService; query != nil {
-		ids := make([]int, 0, len(nodes))
-		nodeids := make(map[int][]*Oauth)
+		ids := make([]string, 0, len(nodes))
+		nodeids := make(map[string][]*Oauth)
 		for i := range nodes {
 			if fk := nodes[i].oauth_service; fk != nil {
 				ids = append(ids, *fk)

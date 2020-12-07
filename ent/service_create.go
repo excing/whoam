@@ -20,12 +20,6 @@ type ServiceCreate struct {
 	hooks    []Hook
 }
 
-// SetServiceID sets the service_id field.
-func (sc *ServiceCreate) SetServiceID(s string) *ServiceCreate {
-	sc.mutation.SetServiceID(s)
-	return sc
-}
-
 // SetName sets the name field.
 func (sc *ServiceCreate) SetName(s string) *ServiceCreate {
 	sc.mutation.SetName(s)
@@ -47,6 +41,12 @@ func (sc *ServiceCreate) SetDomain(s string) *ServiceCreate {
 // SetCloneURI sets the clone_uri field.
 func (sc *ServiceCreate) SetCloneURI(s string) *ServiceCreate {
 	sc.mutation.SetCloneURI(s)
+	return sc
+}
+
+// SetID sets the id field.
+func (sc *ServiceCreate) SetID(s string) *ServiceCreate {
+	sc.mutation.SetID(s)
 	return sc
 }
 
@@ -116,9 +116,6 @@ func (sc *ServiceCreate) SaveX(ctx context.Context) *Service {
 
 // check runs all checks and user-defined validators on the builder.
 func (sc *ServiceCreate) check() error {
-	if _, ok := sc.mutation.ServiceID(); !ok {
-		return &ValidationError{Name: "service_id", err: errors.New("ent: missing required field \"service_id\"")}
-	}
 	if _, ok := sc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New("ent: missing required field \"name\"")}
 	}
@@ -141,6 +138,11 @@ func (sc *ServiceCreate) check() error {
 			return &ValidationError{Name: "clone_uri", err: fmt.Errorf("ent: validator failed for field \"clone_uri\": %w", err)}
 		}
 	}
+	if v, ok := sc.mutation.ID(); ok {
+		if err := service.IDValidator(v); err != nil {
+			return &ValidationError{Name: "id", err: fmt.Errorf("ent: validator failed for field \"id\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -152,8 +154,6 @@ func (sc *ServiceCreate) sqlSave(ctx context.Context) (*Service, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
 	return _node, nil
 }
 
@@ -163,18 +163,14 @@ func (sc *ServiceCreate) createSpec() (*Service, *sqlgraph.CreateSpec) {
 		_spec = &sqlgraph.CreateSpec{
 			Table: service.Table,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: service.FieldID,
 			},
 		}
 	)
-	if value, ok := sc.mutation.ServiceID(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: service.FieldServiceID,
-		})
-		_node.ServiceID = value
+	if id, ok := sc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = id
 	}
 	if value, ok := sc.mutation.Name(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
@@ -269,8 +265,6 @@ func (scb *ServiceCreateBulk) Save(ctx context.Context) ([]*Service, error) {
 				if err != nil {
 					return nil, err
 				}
-				id := specs[i].ID.Value.(int64)
-				nodes[i].ID = int(id)
 				return nodes[i], nil
 			})
 			for i := len(builder.hooks) - 1; i >= 0; i-- {

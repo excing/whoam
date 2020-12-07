@@ -49,7 +49,7 @@ type MethodMutation struct {
 	route         *string
 	scope         *method.Scope
 	clearedFields map[string]struct{}
-	owner         *int
+	owner         *string
 	clearedowner  bool
 	done          bool
 	oldValue      func(context.Context) (*Method, error)
@@ -247,7 +247,7 @@ func (m *MethodMutation) ResetScope() {
 }
 
 // SetOwnerID sets the owner edge to Service by id.
-func (m *MethodMutation) SetOwnerID(id int) {
+func (m *MethodMutation) SetOwnerID(id string) {
 	m.owner = &id
 }
 
@@ -262,7 +262,7 @@ func (m *MethodMutation) OwnerCleared() bool {
 }
 
 // OwnerID returns the owner id in the mutation.
-func (m *MethodMutation) OwnerID() (id int, exists bool) {
+func (m *MethodMutation) OwnerID() (id string, exists bool) {
 	if m.owner != nil {
 		return *m.owner, true
 	}
@@ -272,7 +272,7 @@ func (m *MethodMutation) OwnerID() (id int, exists bool) {
 // OwnerIDs returns the owner ids in the mutation.
 // Note that ids always returns len(ids) <= 1 for unique edges, and you should use
 // OwnerID instead. It exists only for internal usage by the builders.
-func (m *MethodMutation) OwnerIDs() (ids []int) {
+func (m *MethodMutation) OwnerIDs() (ids []string) {
 	if id := m.owner; id != nil {
 		ids = append(ids, *id)
 	}
@@ -524,7 +524,7 @@ type OauthMutation struct {
 	clearedFields  map[string]struct{}
 	owner          *int
 	clearedowner   bool
-	service        *int
+	service        *string
 	clearedservice bool
 	done           bool
 	oldValue       func(context.Context) (*Oauth, error)
@@ -761,7 +761,7 @@ func (m *OauthMutation) ResetOwner() {
 }
 
 // SetServiceID sets the service edge to Service by id.
-func (m *OauthMutation) SetServiceID(id int) {
+func (m *OauthMutation) SetServiceID(id string) {
 	m.service = &id
 }
 
@@ -776,7 +776,7 @@ func (m *OauthMutation) ServiceCleared() bool {
 }
 
 // ServiceID returns the service id in the mutation.
-func (m *OauthMutation) ServiceID() (id int, exists bool) {
+func (m *OauthMutation) ServiceID() (id string, exists bool) {
 	if m.service != nil {
 		return *m.service, true
 	}
@@ -786,7 +786,7 @@ func (m *OauthMutation) ServiceID() (id int, exists bool) {
 // ServiceIDs returns the service ids in the mutation.
 // Note that ids always returns len(ids) <= 1 for unique edges, and you should use
 // ServiceID instead. It exists only for internal usage by the builders.
-func (m *OauthMutation) ServiceIDs() (ids []int) {
+func (m *OauthMutation) ServiceIDs() (ids []string) {
 	if id := m.service; id != nil {
 		ids = append(ids, *id)
 	}
@@ -1055,7 +1055,7 @@ type PermissionMutation struct {
 	clearedFields  map[string]struct{}
 	owner          *int
 	clearedowner   bool
-	client         *int
+	client         *string
 	clearedclient  bool
 	methods        map[int]struct{}
 	removedmethods map[int]struct{}
@@ -1258,7 +1258,7 @@ func (m *PermissionMutation) ResetOwner() {
 }
 
 // SetClientID sets the client edge to Service by id.
-func (m *PermissionMutation) SetClientID(id int) {
+func (m *PermissionMutation) SetClientID(id string) {
 	m.client = &id
 }
 
@@ -1273,7 +1273,7 @@ func (m *PermissionMutation) ClientCleared() bool {
 }
 
 // ClientID returns the client id in the mutation.
-func (m *PermissionMutation) ClientID() (id int, exists bool) {
+func (m *PermissionMutation) ClientID() (id string, exists bool) {
 	if m.client != nil {
 		return *m.client, true
 	}
@@ -1283,7 +1283,7 @@ func (m *PermissionMutation) ClientID() (id int, exists bool) {
 // ClientIDs returns the client ids in the mutation.
 // Note that ids always returns len(ids) <= 1 for unique edges, and you should use
 // ClientID instead. It exists only for internal usage by the builders.
-func (m *PermissionMutation) ClientIDs() (ids []int) {
+func (m *PermissionMutation) ClientIDs() (ids []string) {
 	if id := m.client; id != nil {
 		ids = append(ids, *id)
 	}
@@ -2197,8 +2197,7 @@ type ServiceMutation struct {
 	config
 	op             Op
 	typ            string
-	id             *int
-	service_id     *string
+	id             *string
 	name           *string
 	subject        *string
 	domain         *string
@@ -2232,7 +2231,7 @@ func newServiceMutation(c config, op Op, opts ...serviceOption) *ServiceMutation
 }
 
 // withServiceID sets the id field of the mutation.
-func withServiceID(id int) serviceOption {
+func withServiceID(id string) serviceOption {
 	return func(m *ServiceMutation) {
 		var (
 			err   error
@@ -2282,50 +2281,19 @@ func (m ServiceMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that, this
+// operation is accepted only on Service creation.
+func (m *ServiceMutation) SetID(id string) {
+	m.id = &id
+}
+
 // ID returns the id value in the mutation. Note that, the id
 // is available only if it was provided to the builder.
-func (m *ServiceMutation) ID() (id int, exists bool) {
+func (m *ServiceMutation) ID() (id string, exists bool) {
 	if m.id == nil {
 		return
 	}
 	return *m.id, true
-}
-
-// SetServiceID sets the service_id field.
-func (m *ServiceMutation) SetServiceID(s string) {
-	m.service_id = &s
-}
-
-// ServiceID returns the service_id value in the mutation.
-func (m *ServiceMutation) ServiceID() (r string, exists bool) {
-	v := m.service_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldServiceID returns the old service_id value of the Service.
-// If the Service object wasn't provided to the builder, the object is fetched
-// from the database.
-// An error is returned if the mutation operation is not UpdateOne, or database query fails.
-func (m *ServiceMutation) OldServiceID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldServiceID is allowed only on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldServiceID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldServiceID: %w", err)
-	}
-	return oldValue.ServiceID, nil
-}
-
-// ResetServiceID reset all changes of the "service_id" field.
-func (m *ServiceMutation) ResetServiceID() {
-	m.service_id = nil
 }
 
 // SetName sets the name field.
@@ -2543,10 +2511,7 @@ func (m *ServiceMutation) Type() string {
 // this mutation. Note that, in order to get all numeric
 // fields that were in/decremented, call AddedFields().
 func (m *ServiceMutation) Fields() []string {
-	fields := make([]string, 0, 5)
-	if m.service_id != nil {
-		fields = append(fields, service.FieldServiceID)
-	}
+	fields := make([]string, 0, 4)
 	if m.name != nil {
 		fields = append(fields, service.FieldName)
 	}
@@ -2567,8 +2532,6 @@ func (m *ServiceMutation) Fields() []string {
 // not set, or was not define in the schema.
 func (m *ServiceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case service.FieldServiceID:
-		return m.ServiceID()
 	case service.FieldName:
 		return m.Name()
 	case service.FieldSubject:
@@ -2586,8 +2549,6 @@ func (m *ServiceMutation) Field(name string) (ent.Value, bool) {
 // or the query to the database was failed.
 func (m *ServiceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case service.FieldServiceID:
-		return m.OldServiceID(ctx)
 	case service.FieldName:
 		return m.OldName(ctx)
 	case service.FieldSubject:
@@ -2605,13 +2566,6 @@ func (m *ServiceMutation) OldField(ctx context.Context, name string) (ent.Value,
 // type mismatch the field type.
 func (m *ServiceMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case service.FieldServiceID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetServiceID(v)
-		return nil
 	case service.FieldName:
 		v, ok := value.(string)
 		if !ok {
@@ -2690,9 +2644,6 @@ func (m *ServiceMutation) ClearField(name string) error {
 // defined in the schema.
 func (m *ServiceMutation) ResetField(name string) error {
 	switch name {
-	case service.FieldServiceID:
-		m.ResetServiceID()
-		return nil
 	case service.FieldName:
 		m.ResetName()
 		return nil

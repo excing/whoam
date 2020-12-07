@@ -657,7 +657,7 @@ func (c *ServiceClient) UpdateOne(s *Service) *ServiceUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *ServiceClient) UpdateOneID(id int) *ServiceUpdateOne {
+func (c *ServiceClient) UpdateOneID(id string) *ServiceUpdateOne {
 	mutation := newServiceMutation(c.config, OpUpdateOne, withServiceID(id))
 	return &ServiceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -674,7 +674,7 @@ func (c *ServiceClient) DeleteOne(s *Service) *ServiceDeleteOne {
 }
 
 // DeleteOneID returns a delete builder for the given id.
-func (c *ServiceClient) DeleteOneID(id int) *ServiceDeleteOne {
+func (c *ServiceClient) DeleteOneID(id string) *ServiceDeleteOne {
 	builder := c.Delete().Where(service.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -687,12 +687,12 @@ func (c *ServiceClient) Query() *ServiceQuery {
 }
 
 // Get returns a Service entity by its id.
-func (c *ServiceClient) Get(ctx context.Context, id int) (*Service, error) {
+func (c *ServiceClient) Get(ctx context.Context, id string) (*Service, error) {
 	return c.Query().Where(service.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *ServiceClient) GetX(ctx context.Context, id int) *Service {
+func (c *ServiceClient) GetX(ctx context.Context, id string) *Service {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)

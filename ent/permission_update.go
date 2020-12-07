@@ -49,7 +49,7 @@ func (pu *PermissionUpdate) SetOwner(u *User) *PermissionUpdate {
 }
 
 // SetClientID sets the client edge to Service by id.
-func (pu *PermissionUpdate) SetClientID(id int) *PermissionUpdate {
+func (pu *PermissionUpdate) SetClientID(id string) *PermissionUpdate {
 	pu.mutation.SetClientID(id)
 	return pu
 }
@@ -258,7 +258,7 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -274,7 +274,7 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -374,7 +374,7 @@ func (puo *PermissionUpdateOne) SetOwner(u *User) *PermissionUpdateOne {
 }
 
 // SetClientID sets the client edge to Service by id.
-func (puo *PermissionUpdateOne) SetClientID(id int) *PermissionUpdateOne {
+func (puo *PermissionUpdateOne) SetClientID(id string) *PermissionUpdateOne {
 	puo.mutation.SetClientID(id)
 	return puo
 }
@@ -581,7 +581,7 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
@@ -597,7 +597,7 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},

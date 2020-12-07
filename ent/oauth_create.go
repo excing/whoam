@@ -60,7 +60,7 @@ func (oc *OauthCreate) SetOwner(u *User) *OauthCreate {
 }
 
 // SetServiceID sets the service edge to Service by id.
-func (oc *OauthCreate) SetServiceID(id int) *OauthCreate {
+func (oc *OauthCreate) SetServiceID(id string) *OauthCreate {
 	oc.mutation.SetServiceID(id)
 	return oc
 }
@@ -229,7 +229,7 @@ func (oc *OauthCreate) createSpec() (*Oauth, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},

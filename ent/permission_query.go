@@ -474,8 +474,8 @@ func (pq *PermissionQuery) sqlAll(ctx context.Context) ([]*Permission, error) {
 	}
 
 	if query := pq.withClient; query != nil {
-		ids := make([]int, 0, len(nodes))
-		nodeids := make(map[int][]*Permission)
+		ids := make([]string, 0, len(nodes))
+		nodeids := make(map[string][]*Permission)
 		for i := range nodes {
 			if fk := nodes[i].permission_client; fk != nil {
 				ids = append(ids, *fk)

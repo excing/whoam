@@ -47,7 +47,7 @@ func (mc *MethodCreate) SetNillableScope(m *method.Scope) *MethodCreate {
 }
 
 // SetOwnerID sets the owner edge to Service by id.
-func (mc *MethodCreate) SetOwnerID(id int) *MethodCreate {
+func (mc *MethodCreate) SetOwnerID(id string) *MethodCreate {
 	mc.mutation.SetOwnerID(id)
 	return mc
 }
@@ -194,7 +194,7 @@ func (mc *MethodCreate) createSpec() (*Method, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},

@@ -15,7 +15,7 @@ var (
 		{Name: "route", Type: field.TypeString},
 		{Name: "scope", Type: field.TypeEnum, Enums: []string{"public", "private"}, Default: "public"},
 		{Name: "permission_methods", Type: field.TypeInt, Nullable: true},
-		{Name: "service_methods", Type: field.TypeInt, Nullable: true},
+		{Name: "service_methods", Type: field.TypeString, Nullable: true},
 	}
 	// MethodsTable holds the schema information for the "methods" table.
 	MethodsTable = &schema.Table{
@@ -45,7 +45,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "expired_at", Type: field.TypeTime},
 		{Name: "main_token", Type: field.TypeString, Unique: true},
-		{Name: "oauth_service", Type: field.TypeInt, Nullable: true},
+		{Name: "oauth_service", Type: field.TypeString, Nullable: true},
 		{Name: "user_oauths", Type: field.TypeInt, Nullable: true},
 	}
 	// OauthsTable holds the schema information for the "oauths" table.
@@ -75,7 +75,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "permission_client", Type: field.TypeInt, Nullable: true},
+		{Name: "permission_client", Type: field.TypeString, Nullable: true},
 		{Name: "user_permissions", Type: field.TypeInt, Nullable: true},
 	}
 	// PermissionsTable holds the schema information for the "permissions" table.
@@ -127,8 +127,7 @@ var (
 	}
 	// ServicesColumns holds the columns for the "services" table.
 	ServicesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "service_id", Type: field.TypeString, Unique: true},
+		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "subject", Type: field.TypeString},
 		{Name: "domain", Type: field.TypeString},

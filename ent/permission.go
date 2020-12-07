@@ -25,7 +25,7 @@ type Permission struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PermissionQuery when eager-loading is set.
 	Edges             PermissionEdges `json:"edges"`
-	permission_client *int
+	permission_client *string
 	user_permissions  *int
 }
 
@@ -91,8 +91,8 @@ func (*Permission) scanValues() []interface{} {
 // fkValues returns the types for scanning foreign-keys values from sql.Rows.
 func (*Permission) fkValues() []interface{} {
 	return []interface{}{
-		&sql.NullInt64{}, // permission_client
-		&sql.NullInt64{}, // user_permissions
+		&sql.NullString{}, // permission_client
+		&sql.NullInt64{},  // user_permissions
 	}
 }
 
@@ -120,11 +120,11 @@ func (pe *Permission) assignValues(values ...interface{}) error {
 	}
 	values = values[2:]
 	if len(values) == len(permission.ForeignKeys) {
-		if value, ok := values[0].(*sql.NullInt64); !ok {
-			return fmt.Errorf("unexpected type %T for edge-field permission_client", value)
+		if value, ok := values[0].(*sql.NullString); !ok {
+			return fmt.Errorf("unexpected type %T for field permission_client", values[0])
 		} else if value.Valid {
-			pe.permission_client = new(int)
-			*pe.permission_client = int(value.Int64)
+			pe.permission_client = new(string)
+			*pe.permission_client = value.String
 		}
 		if value, ok := values[1].(*sql.NullInt64); !ok {
 			return fmt.Errorf("unexpected type %T for edge-field user_permissions", value)

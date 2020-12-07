@@ -26,7 +26,7 @@ type Method struct {
 	// The values are being populated by the MethodQuery when eager-loading is set.
 	Edges              MethodEdges `json:"edges"`
 	permission_methods *int
-	service_methods    *int
+	service_methods    *string
 }
 
 // MethodEdges holds the relations/edges for other nodes in the graph.
@@ -65,8 +65,8 @@ func (*Method) scanValues() []interface{} {
 // fkValues returns the types for scanning foreign-keys values from sql.Rows.
 func (*Method) fkValues() []interface{} {
 	return []interface{}{
-		&sql.NullInt64{}, // permission_methods
-		&sql.NullInt64{}, // service_methods
+		&sql.NullInt64{},  // permission_methods
+		&sql.NullString{}, // service_methods
 	}
 }
 
@@ -105,11 +105,11 @@ func (m *Method) assignValues(values ...interface{}) error {
 			m.permission_methods = new(int)
 			*m.permission_methods = int(value.Int64)
 		}
-		if value, ok := values[1].(*sql.NullInt64); !ok {
-			return fmt.Errorf("unexpected type %T for edge-field service_methods", value)
+		if value, ok := values[1].(*sql.NullString); !ok {
+			return fmt.Errorf("unexpected type %T for field service_methods", values[1])
 		} else if value.Valid {
-			m.service_methods = new(int)
-			*m.service_methods = int(value.Int64)
+			m.service_methods = new(string)
+			*m.service_methods = value.String
 		}
 	}
 	return nil

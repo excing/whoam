@@ -100,8 +100,8 @@ func (sq *ServiceQuery) FirstX(ctx context.Context) *Service {
 }
 
 // FirstID returns the first Service id in the query. Returns *NotFoundError when no id was found.
-func (sq *ServiceQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (sq *ServiceQuery) FirstID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = sq.Limit(1).IDs(ctx); err != nil {
 		return
 	}
@@ -113,7 +113,7 @@ func (sq *ServiceQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (sq *ServiceQuery) FirstIDX(ctx context.Context) int {
+func (sq *ServiceQuery) FirstIDX(ctx context.Context) string {
 	id, err := sq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -147,8 +147,8 @@ func (sq *ServiceQuery) OnlyX(ctx context.Context) *Service {
 }
 
 // OnlyID returns the only Service id in the query, returns an error if not exactly one id was returned.
-func (sq *ServiceQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (sq *ServiceQuery) OnlyID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = sq.Limit(2).IDs(ctx); err != nil {
 		return
 	}
@@ -164,7 +164,7 @@ func (sq *ServiceQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (sq *ServiceQuery) OnlyIDX(ctx context.Context) int {
+func (sq *ServiceQuery) OnlyIDX(ctx context.Context) string {
 	id, err := sq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -190,8 +190,8 @@ func (sq *ServiceQuery) AllX(ctx context.Context) []*Service {
 }
 
 // IDs executes the query and returns a list of Service ids.
-func (sq *ServiceQuery) IDs(ctx context.Context) ([]int, error) {
-	var ids []int
+func (sq *ServiceQuery) IDs(ctx context.Context) ([]string, error) {
+	var ids []string
 	if err := sq.Select(service.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (sq *ServiceQuery) IDs(ctx context.Context) ([]int, error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (sq *ServiceQuery) IDsX(ctx context.Context) []int {
+func (sq *ServiceQuery) IDsX(ctx context.Context) []string {
 	ids, err := sq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -278,12 +278,12 @@ func (sq *ServiceQuery) WithMethods(opts ...func(*MethodQuery)) *ServiceQuery {
 // Example:
 //
 //	var v []struct {
-//		ServiceID string `json:"service_id,omitempty"`
+//		Name string `json:"name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Service.Query().
-//		GroupBy(service.FieldServiceID).
+//		GroupBy(service.FieldName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 //
@@ -304,11 +304,11 @@ func (sq *ServiceQuery) GroupBy(field string, fields ...string) *ServiceGroupBy 
 // Example:
 //
 //	var v []struct {
-//		ServiceID string `json:"service_id,omitempty"`
+//		Name string `json:"name,omitempty"`
 //	}
 //
 //	client.Service.Query().
-//		Select(service.FieldServiceID).
+//		Select(service.FieldName).
 //		Scan(ctx, &v)
 //
 func (sq *ServiceQuery) Select(field string, fields ...string) *ServiceSelect {
@@ -365,7 +365,7 @@ func (sq *ServiceQuery) sqlAll(ctx context.Context) ([]*Service, error) {
 
 	if query := sq.withMethods; query != nil {
 		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[int]*Service)
+		nodeids := make(map[string]*Service)
 		for i := range nodes {
 			fks = append(fks, nodes[i].ID)
 			nodeids[nodes[i].ID] = nodes[i]
@@ -414,7 +414,7 @@ func (sq *ServiceQuery) querySpec() *sqlgraph.QuerySpec {
 			Table:   service.Table,
 			Columns: service.Columns,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: service.FieldID,
 			},
 		},

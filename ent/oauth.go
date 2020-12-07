@@ -27,7 +27,7 @@ type Oauth struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the OauthQuery when eager-loading is set.
 	Edges         OauthEdges `json:"edges"`
-	oauth_service *int
+	oauth_service *string
 	user_oauths   *int
 }
 
@@ -83,8 +83,8 @@ func (*Oauth) scanValues() []interface{} {
 // fkValues returns the types for scanning foreign-keys values from sql.Rows.
 func (*Oauth) fkValues() []interface{} {
 	return []interface{}{
-		&sql.NullInt64{}, // oauth_service
-		&sql.NullInt64{}, // user_oauths
+		&sql.NullString{}, // oauth_service
+		&sql.NullInt64{},  // user_oauths
 	}
 }
 
@@ -117,11 +117,11 @@ func (o *Oauth) assignValues(values ...interface{}) error {
 	}
 	values = values[3:]
 	if len(values) == len(oauth.ForeignKeys) {
-		if value, ok := values[0].(*sql.NullInt64); !ok {
-			return fmt.Errorf("unexpected type %T for edge-field oauth_service", value)
+		if value, ok := values[0].(*sql.NullString); !ok {
+			return fmt.Errorf("unexpected type %T for field oauth_service", values[0])
 		} else if value.Valid {
-			o.oauth_service = new(int)
-			*o.oauth_service = int(value.Int64)
+			o.oauth_service = new(string)
+			*o.oauth_service = value.String
 		}
 		if value, ok := values[1].(*sql.NullInt64); !ok {
 			return fmt.Errorf("unexpected type %T for edge-field user_oauths", value)

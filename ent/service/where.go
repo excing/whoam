@@ -9,28 +9,28 @@ import (
 )
 
 // ID filters vertices based on their identifier.
-func ID(id int) predicate.Service {
+func ID(id string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldID), id))
 	})
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.Service {
+func IDEQ(id string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldID), id))
 	})
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.Service {
+func IDNEQ(id string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.NEQ(s.C(FieldID), id))
 	})
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.Service {
+func IDIn(ids ...string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		// if not arguments were provided, append the FALSE constants,
 		// since we can't apply "IN ()". This will make this predicate falsy.
@@ -47,7 +47,7 @@ func IDIn(ids ...int) predicate.Service {
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.Service {
+func IDNotIn(ids ...string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		// if not arguments were provided, append the FALSE constants,
 		// since we can't apply "IN ()". This will make this predicate falsy.
@@ -64,37 +64,30 @@ func IDNotIn(ids ...int) predicate.Service {
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.Service {
+func IDGT(id string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.GT(s.C(FieldID), id))
 	})
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.Service {
+func IDGTE(id string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.GTE(s.C(FieldID), id))
 	})
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.Service {
+func IDLT(id string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.LT(s.C(FieldID), id))
 	})
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.Service {
+func IDLTE(id string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldID), id))
-	})
-}
-
-// ServiceID applies equality check predicate on the "service_id" field. It's identical to ServiceIDEQ.
-func ServiceID(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldServiceID), v))
 	})
 }
 
@@ -123,117 +116,6 @@ func Domain(v string) predicate.Service {
 func CloneURI(v string) predicate.Service {
 	return predicate.Service(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldCloneURI), v))
-	})
-}
-
-// ServiceIDEQ applies the EQ predicate on the "service_id" field.
-func ServiceIDEQ(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDNEQ applies the NEQ predicate on the "service_id" field.
-func ServiceIDNEQ(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDIn applies the In predicate on the "service_id" field.
-func ServiceIDIn(vs ...string) predicate.Service {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Service(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.In(s.C(FieldServiceID), v...))
-	})
-}
-
-// ServiceIDNotIn applies the NotIn predicate on the "service_id" field.
-func ServiceIDNotIn(vs ...string) predicate.Service {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Service(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.NotIn(s.C(FieldServiceID), v...))
-	})
-}
-
-// ServiceIDGT applies the GT predicate on the "service_id" field.
-func ServiceIDGT(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDGTE applies the GTE predicate on the "service_id" field.
-func ServiceIDGTE(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDLT applies the LT predicate on the "service_id" field.
-func ServiceIDLT(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDLTE applies the LTE predicate on the "service_id" field.
-func ServiceIDLTE(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDContains applies the Contains predicate on the "service_id" field.
-func ServiceIDContains(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.Contains(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDHasPrefix applies the HasPrefix predicate on the "service_id" field.
-func ServiceIDHasPrefix(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.HasPrefix(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDHasSuffix applies the HasSuffix predicate on the "service_id" field.
-func ServiceIDHasSuffix(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.HasSuffix(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDEqualFold applies the EqualFold predicate on the "service_id" field.
-func ServiceIDEqualFold(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.EqualFold(s.C(FieldServiceID), v))
-	})
-}
-
-// ServiceIDContainsFold applies the ContainsFold predicate on the "service_id" field.
-func ServiceIDContainsFold(v string) predicate.Service {
-	return predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.ContainsFold(s.C(FieldServiceID), v))
 	})
 }
 

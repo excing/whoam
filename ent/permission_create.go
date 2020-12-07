@@ -63,7 +63,7 @@ func (pc *PermissionCreate) SetOwner(u *User) *PermissionCreate {
 }
 
 // SetClientID sets the client edge to Service by id.
-func (pc *PermissionCreate) SetClientID(id int) *PermissionCreate {
+func (pc *PermissionCreate) SetClientID(id string) *PermissionCreate {
 	pc.mutation.SetClientID(id)
 	return pc
 }
@@ -235,7 +235,7 @@ func (pc *PermissionCreate) createSpec() (*Permission, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: service.FieldID,
 				},
 			},
