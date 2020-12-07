@@ -119,7 +119,7 @@ func main() {
 	apiV1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
 
 	apiV1.POST("/servicer", inout(PostServicer))
-	apiV1.POST("/service/method", inout(PostServiceMethod))
+	apiV1.POST("/service/:id/method", inout(PostServiceMethod))
 
 	apiV1.POST("/ras/new", inout(NewRAS))
 	// apiV1.POST("/ras/vote", inout(PostRASpaceVote))
