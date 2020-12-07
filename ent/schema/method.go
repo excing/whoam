@@ -16,6 +16,7 @@ func (Method) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
 		field.String("route"),
+		field.String("subject").Optional(),
 		field.Enum("scope").Values("public", "private").Default("public"),
 	}
 }
