@@ -69,11 +69,9 @@
     }
 
     function allowAuth() {
-      const userId = Cookies.get('userId')
-      const accessToken = Cookies.get('accessToken')
+      const mainToken = localStorage.getItem('mainToken')
       Post('/api/v1/user/oauth/auth', {
-        userId: userId,
-        accessToken: accessToken,
+        mainToken: mainToken,
         clientId: clientId,
         state: state,
       }, function (status, response) {
@@ -81,9 +79,6 @@
         window.location.href = redirect_uri + "?return_to=" + return_to + "&code=" + code
       })
     }
-
-    var loginToken, loginState
-    var accessToken = Cookies.get('accessToken')
 
     const url_string = window.location.href
     const url = new URL(url_string)
