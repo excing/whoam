@@ -49,9 +49,10 @@
         method: 'post',
         url: 'http://localhost:18030/api/v1/service',
         data: urlForm,
-      }).then(function (response) {
-        alert("Register successed")
       })
+        .then(function (response) {
+          alert("Register successed")
+        })
         .catch(function (error) {
           alert("Register failured: " + error)
         });
