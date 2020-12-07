@@ -46,6 +46,10 @@ func PostServicer(c *Context) error {
 		SetCloneURI(form.CloneURI).
 		Save(ctx)
 
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
 	return c.NoContent()
 }
 
