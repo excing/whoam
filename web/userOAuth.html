@@ -23,61 +23,28 @@
     </form>
   </div>
   <script>
-    function Post(url, data, success, failure = undefined, error = undefined) {
-      var urlEncodedData = "";
-      var urlEncodedDataPairs = [];
-      var name;
-
-      // 将数据对象转换为URL编码的键/值对数组。
-      for (name in data) {
-        urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(data[name]));
-      }
-
-      // 将配对合并为单个字符串，并将所有%编码的空格替换为
-      // “+”字符；匹配浏览器表单提交的行为。
-      urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
-
-      var request = new XMLHttpRequest();
-      request.open("POST", url);
-      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-      request.onload = function () {
-        if (200 <= request.status && request.status < 300) {
-          success(request.status, request.response)
-        } else if (failure != undefined) {
-          failure(request.status, request.response)
-        }
-      }
-      request.error = error
-      request.send(urlEncodedData);
-    }
-
-    function Get(url, headers, success, failure = undefined, error = undefined) {
-      var request = new XMLHttpRequest();
-      request.open("GET", url);
-      for (name in headers) {
-        request.setRequestHeader(name, headers[name]);
-      }
-      request.onload = function () {
-        if (200 <= request.status && request.status < 300) {
-          success(request.status, request.response)
-        } else if (failure != undefined) {
-          failure(request.status, request.response)
-        }
-      }
-      request.error = error
-      request.send();
-    }
-
     function allowAuth() {
-      const mainToken = localStorage.getItem('mainToken')
-      Post('/api/v1/user/oauth/auth', {
-        mainToken: mainToken,
+      const form = {
+        mainToken: localStorage.getItem('mainToken'),
         clientId: clientId,
         state: state,
-      }, function (status, response) {
-        const code = response
-        window.location.href = redirect_uri + "?return_to=" + return_to + "&code=" + code
+      }
+
+      // js object value of URLSearchParams
+      var urlForm = new URLSearchParams()
+      for (name in form) {
+        urlForm.append(name, form[name])
+      }
+
+      axios({
+        method: 'post',
+        url: '/api/v1/user/oauth/auth',
+        data: urlForm,
       })
+        .then(function (response) {
+          const code = response.data
+          window.location.href = redirect_uri + "?return_to=" + return_to + "&code=" + code
+        })
     }
 
     const url_string = window.location.href
