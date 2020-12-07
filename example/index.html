@@ -38,23 +38,17 @@
         domain: 'http://127.0.0.1:5500/example',
         cloneUri: 'https://github.com/excing/whoam.git',
       }
-      var urlEncodedData = "";
-      var urlEncodedDataPairs = [];
-      var name;
 
-      // 将数据对象转换为URL编码的键/值对数组。
+      // js object value of URLSearchParams
+      var urlForm = new URLSearchParams()
       for (name in form) {
-        urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(form[name]));
+        urlForm.append(name, form[name])
       }
 
-      // 将配对合并为单个字符串，并将所有%编码的空格替换为
-      // “+”字符；匹配浏览器表单提交的行为。
-      urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
       axios({
         method: 'post',
         url: 'http://localhost:18030/api/v1/service',
-        data: urlEncodedData,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        data: urlForm,
       }).then(function (response) {
         alert("Register successed")
       })
@@ -64,20 +58,17 @@
     }
 
     function addServiceMethod() {
-      axios.post('http://localhost:18030/api/v1/service/' + clientId + "/method", data = [
-        {
-          name: "upload",
-          route: '/file/upload',
-          subject: 'upload public file',
-          scope: 'public',
-        },
-        {
-          name: "download",
-          route: '/file/download',
-          subject: 'download file, this is private method',
-          scope: 'private',
-        }
-      ])
+      axios.post('http://localhost:18030/api/v1/service/' + clientId + "/method", data = [{
+        name: "upload",
+        route: '/file/upload',
+        subject: 'upload public file',
+        scope: 'public',
+      }, {
+        name: "download",
+        route: '/file/download',
+        subject: 'download file, this is private method',
+        scope: 'private',
+      }])
         .then(function (response) {
           alert("Register successed")
         })
