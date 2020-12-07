@@ -60,15 +60,14 @@ func main() {
 		panic("failed to connect database")
 	}
 
-	client, err = ent.Open("sqlite3", "file:"+config.Db+"?_fk=1", nil)
+	client, err = ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
 	if err != nil {
 		panic("failed to open database: " + err.Error())
 	}
 	defer client.Close()
 
-	ctx := context.Background()
-	err = client.Schema.Create(ctx)
-	if err != nil {
+	ctx = context.Background()
+	if err = client.Schema.Create(ctx); err != nil {
 		panic("failed to create schema: " + err.Error())
 	}
 
@@ -120,7 +119,6 @@ func main() {
 	apiV1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
 
 	apiV1.POST("/servicer", inout(PostServicer))
-	apiV1.DELETE("/servicer", inout(DeleteServicer))
 	apiV1.POST("/service/method", inout(PostServiceMethod))
 
 	apiV1.POST("/ras/new", inout(NewRAS))
