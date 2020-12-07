@@ -98,9 +98,18 @@
         var user = JSON.parse(response)
         Cookies.set('userId', user.userId)
         Cookies.set('accessToken', user.accessToken)
+        saveItem("mainToken", user.mainToken)
 
         window.location.href = "/user/oauth" + window.location.search + "&again=true"
       })
+    }
+
+    function saveItem(key, val) {
+      if (typeof (Storage) !== "undefined") {
+        localStorage.setItem(key, val)
+      } else {
+        alert("The browser is not supported local storage, please change the browser and try again.")
+      }
     }
   </script>
 </body>
