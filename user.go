@@ -258,7 +258,7 @@ func GetOAuthCode(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	_, err = client.Oauth.Create().
+	auth, err := client.Oauth.Create().
 		SetMainToken(New64BitID()).
 		SetExpiredAt(time.Now().Add(timeoutRefreshToken)).
 		SetOwnerID(oauthUser.UserID).
@@ -269,7 +269,7 @@ func GetOAuthCode(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.Ok(&accessToken)
+	return c.Ok(&userVerificationResp{oauthUser.UserID, accessToken, auth.MainToken})
 }
 
 // GetOAuthState Get user authorization status
