@@ -23,7 +23,7 @@ type Config struct {
 }
 
 const (
-	tlpUserLogin = "userOAuthLogin.html"
+	tlpUserLogin = "userLogin.html"
 	tlpUserOAuth = "userOAuth.html"
 
 	tlpFaviconSVG = "favicon.svg"
