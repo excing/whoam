@@ -61,6 +61,12 @@ type userVerificationForm struct {
 	Token string `schema:"token,required"`
 }
 
+type userVerificationResp struct {
+	UserID      int    `json:"userId"`
+	AccessToken string `json:"accessToken"`
+	MainToken   string `json:"mainToken"`
+}
+
 // PostUserAuth 用户登录授权验证
 func PostUserAuth(c *Context) error {
 	var dst userVerificationForm
@@ -89,9 +95,8 @@ func PostUserAuth(c *Context) error {
 		return c.Unauthorized("Verification failed: email is invalid")
 	}
 
-	user, err := client.User.Query().Where(user.EmailEQ(src.Email)).First(ctx)
+	user, err := client.User.Query().Where(user.EmailEQ(src.Email)).Only(ctx)
 	if err != nil {
-		user.Email = src.Email
 		user, err = client.User.Create().SetEmail(src.Email).Save(ctx)
 		if err != nil {
 			return c.InternalServerError(err.Error())
@@ -107,11 +112,11 @@ func PostUserAuth(c *Context) error {
 
 	mainToken := New64BitID()
 
-	_, err = client.Oauth.Create().
+	auth, err := client.Oauth.Create().
 		SetMainToken(mainToken).
 		SetExpiredAt(time.Now().Add(timeoutRefreshToken)).
 		SetOwner(user).
-		SetService(MainServiceID).
+		SetServiceID(MainServiceID).
 		Save(ctx)
 
 	if err != nil {
@@ -120,7 +125,7 @@ func PostUserAuth(c *Context) error {
 
 	userVerificaBox.DelString(dst.Token)
 
-	return c.Ok(accessToken)
+	return c.Ok(&userVerificationResp{user.ID, accessToken, auth.MainToken})
 }
 
 type userLoginForm struct {
@@ -199,7 +204,7 @@ func PageUserOAuth(c *Context) error {
 }
 
 type oauthAuthForm struct {
-	UserID    int    `schema:"userId,required"`
+	UserID    int    `schema:"-"`
 	MainToken string `schema:"mainToken,required"`
 	ClientID  string `schema:"clientId,required"`
 	State     string `schema:"state,required"`
@@ -214,23 +219,18 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	var loginUserToken UserToken
-	if err = db.Where("user_id=? AND access_token=?", form.UserID, form.MainToken).Find(&loginUserToken).Error; err != nil || 0 == loginUserToken.ID {
+	owner, err := client.Oauth.Query().Where(oauth.MainTokenEQ(form.MainToken)).QueryOwner().Only(ctx)
+	if err != nil {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
-	accessToken := New64BitID()
-	updateToken := New64BitID()
-
-	oauthUserToken := UserToken{
-		UserID:      loginUserToken.UserID,
-		ServiceID:   form.ClientID,
-		AccessToken: accessToken,
-		UpdateToken: updateToken,
+	oauthUser := oauthAuthForm{
+		UserID:   owner.ID,
+		ClientID: form.ClientID,
 	}
 
 	code := New32bitID()
-	if err = oauthCodeBox.SetVal(code, &oauthUserToken); err != nil {
+	if err = oauthCodeBox.SetVal(code, &oauthUser); err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
@@ -244,22 +244,32 @@ func GetOAuthCode(c *Context) error {
 		return c.BadRequest("code is empty")
 	}
 
-	var oauthUserToken UserToken
+	var oauthUser oauthAuthForm
 
-	err := oauthCodeBox.Val(code, &oauthUserToken)
+	err := oauthCodeBox.Val(code, &oauthUser)
 	if err != nil {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
 	oauthCodeBox.DelString(code)
 
-	oauthUserToken.ExpiredAt = time.Now().Add(timeoutRefreshToken).UnixNano()
-
-	if err = db.Create(&oauthUserToken).Error; err != nil {
+	accessToken, err := NewJWTToken(oauthUser.UserID, oauthUser.ClientID, timeoutAccessToken, signingKey)
+	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.Ok(&oauthUserToken)
+	_, err = client.Oauth.Create().
+		SetMainToken(New64BitID()).
+		SetExpiredAt(time.Now().Add(timeoutRefreshToken)).
+		SetOwnerID(oauthUser.UserID).
+		SetServiceID(oauthUser.ClientID).
+		Save(ctx)
+
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.Ok(&accessToken)
 }
 
 // GetOAuthState Get user authorization status
@@ -302,7 +312,7 @@ func PostUserOAuthRefresh(c *Context) error {
 		return c.Unauthorized("Invalid authorized service, please login again")
 	}
 
-	accessToken, err := NewJWTToken(authUser.ID, authService.ServiceID, timeoutAccessToken, signingKey)
+	accessToken, err := NewJWTToken(authUser.ID, authService.ID, timeoutAccessToken, signingKey)
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
