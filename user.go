@@ -105,10 +105,10 @@ func PostUserAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	refreshToken := New64BitID()
+	mainToken := New64BitID()
 
 	_, err = client.Oauth.Create().
-		SetRefreshToken(refreshToken).
+		SetMainToken(mainToken).
 		SetExpiredAt(time.Now().Add(timeoutRefreshToken)).
 		SetOwner(user).
 		SetService(MainServiceID).
@@ -199,10 +199,10 @@ func PageUserOAuth(c *Context) error {
 }
 
 type oauthAuthForm struct {
-	UserID      int    `schema:"userId,required"`
-	AccessToken string `schema:"accessToken,required"`
-	ClientID    string `schema:"clientId,required"`
-	State       string `schema:"state,required"`
+	UserID    int    `schema:"userId,required"`
+	MainToken string `schema:"mainToken,required"`
+	ClientID  string `schema:"clientId,required"`
+	State     string `schema:"state,required"`
 }
 
 // PostUserOAuthAuth whoam user authorized the request(/user/oauth/auth request)
@@ -215,7 +215,7 @@ func PostUserOAuthAuth(c *Context) error {
 	}
 
 	var loginUserToken UserToken
-	if err = db.Where("user_id=? AND access_token=?", form.UserID, form.AccessToken).Find(&loginUserToken).Error; err != nil || 0 == loginUserToken.ID {
+	if err = db.Where("user_id=? AND access_token=?", form.UserID, form.MainToken).Find(&loginUserToken).Error; err != nil || 0 == loginUserToken.ID {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
@@ -285,7 +285,7 @@ func PostUserOAuthRefresh(c *Context) error {
 	}
 
 	auth, err := client.Oauth.Query().
-		Where(oauth.RefreshTokenEQ(refreshToken)).
+		Where(oauth.MainTokenEQ(refreshToken)).
 		Where(oauth.ExpiredAtGT(time.Now())).
 		Only(ctx)
 	if err != nil {
