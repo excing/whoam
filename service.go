@@ -30,8 +30,8 @@ type postServiceForm struct {
 	CloneURI    string `schema:"cloneUri,required"`
 }
 
-// PostServicer 提交服务注册
-func PostServicer(c *Context) error {
+// PostService 提交服务注册
+func PostService(c *Context) error {
 	var form postServiceForm
 	err := c.ParseForm(&form)
 	if err != nil {

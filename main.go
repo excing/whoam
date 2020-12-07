@@ -118,7 +118,7 @@ func main() {
 	apiV1.GET("/user/oauth/state", inout(GetOAuthState))
 	apiV1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
 
-	apiV1.POST("/servicer", inout(PostServicer))
+	apiV1.POST("/service", inout(PostService))
 	apiV1.POST("/service/:id/method", inout(PostServiceMethod))
 
 	apiV1.POST("/ras/new", inout(NewRAS))
