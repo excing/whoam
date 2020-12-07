@@ -520,7 +520,7 @@ type OauthMutation struct {
 	id             *int
 	created_at     *time.Time
 	expired_at     *time.Time
-	refresh_token  *string
+	main_token     *string
 	clearedFields  map[string]struct{}
 	owner          *int
 	clearedowner   bool
@@ -684,41 +684,41 @@ func (m *OauthMutation) ResetExpiredAt() {
 	m.expired_at = nil
 }
 
-// SetRefreshToken sets the refresh_token field.
-func (m *OauthMutation) SetRefreshToken(s string) {
-	m.refresh_token = &s
+// SetMainToken sets the main_token field.
+func (m *OauthMutation) SetMainToken(s string) {
+	m.main_token = &s
 }
 
-// RefreshToken returns the refresh_token value in the mutation.
-func (m *OauthMutation) RefreshToken() (r string, exists bool) {
-	v := m.refresh_token
+// MainToken returns the main_token value in the mutation.
+func (m *OauthMutation) MainToken() (r string, exists bool) {
+	v := m.main_token
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldRefreshToken returns the old refresh_token value of the Oauth.
+// OldMainToken returns the old main_token value of the Oauth.
 // If the Oauth object wasn't provided to the builder, the object is fetched
 // from the database.
 // An error is returned if the mutation operation is not UpdateOne, or database query fails.
-func (m *OauthMutation) OldRefreshToken(ctx context.Context) (v string, err error) {
+func (m *OauthMutation) OldMainToken(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldRefreshToken is allowed only on UpdateOne operations")
+		return v, fmt.Errorf("OldMainToken is allowed only on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldRefreshToken requires an ID field in the mutation")
+		return v, fmt.Errorf("OldMainToken requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRefreshToken: %w", err)
+		return v, fmt.Errorf("querying old value for OldMainToken: %w", err)
 	}
-	return oldValue.RefreshToken, nil
+	return oldValue.MainToken, nil
 }
 
-// ResetRefreshToken reset all changes of the "refresh_token" field.
-func (m *OauthMutation) ResetRefreshToken() {
-	m.refresh_token = nil
+// ResetMainToken reset all changes of the "main_token" field.
+func (m *OauthMutation) ResetMainToken() {
+	m.main_token = nil
 }
 
 // SetOwnerID sets the owner edge to User by id.
@@ -820,8 +820,8 @@ func (m *OauthMutation) Fields() []string {
 	if m.expired_at != nil {
 		fields = append(fields, oauth.FieldExpiredAt)
 	}
-	if m.refresh_token != nil {
-		fields = append(fields, oauth.FieldRefreshToken)
+	if m.main_token != nil {
+		fields = append(fields, oauth.FieldMainToken)
 	}
 	return fields
 }
@@ -835,8 +835,8 @@ func (m *OauthMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case oauth.FieldExpiredAt:
 		return m.ExpiredAt()
-	case oauth.FieldRefreshToken:
-		return m.RefreshToken()
+	case oauth.FieldMainToken:
+		return m.MainToken()
 	}
 	return nil, false
 }
@@ -850,8 +850,8 @@ func (m *OauthMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldCreatedAt(ctx)
 	case oauth.FieldExpiredAt:
 		return m.OldExpiredAt(ctx)
-	case oauth.FieldRefreshToken:
-		return m.OldRefreshToken(ctx)
+	case oauth.FieldMainToken:
+		return m.OldMainToken(ctx)
 	}
 	return nil, fmt.Errorf("unknown Oauth field %s", name)
 }
@@ -875,12 +875,12 @@ func (m *OauthMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetExpiredAt(v)
 		return nil
-	case oauth.FieldRefreshToken:
+	case oauth.FieldMainToken:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetRefreshToken(v)
+		m.SetMainToken(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Oauth field %s", name)
@@ -938,8 +938,8 @@ func (m *OauthMutation) ResetField(name string) error {
 	case oauth.FieldExpiredAt:
 		m.ResetExpiredAt()
 		return nil
-	case oauth.FieldRefreshToken:
-		m.ResetRefreshToken()
+	case oauth.FieldMainToken:
+		m.ResetMainToken()
 		return nil
 	}
 	return fmt.Errorf("unknown Oauth field %s", name)

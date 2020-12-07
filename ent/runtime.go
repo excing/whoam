@@ -26,16 +26,10 @@ func init() {
 	oauthDescCreatedAt := oauthFields[0].Descriptor()
 	// oauth.DefaultCreatedAt holds the default value on creation for the created_at field.
 	oauth.DefaultCreatedAt = oauthDescCreatedAt.Default.(func() time.Time)
-	// oauthDescExpiredAt is the schema descriptor for expired_at field.
-	oauthDescExpiredAt := oauthFields[1].Descriptor()
-	// oauth.DefaultExpiredAt holds the default value on creation for the expired_at field.
-	oauth.DefaultExpiredAt = oauthDescExpiredAt.Default.(func() time.Time)
-	// oauth.UpdateDefaultExpiredAt holds the default value on update for the expired_at field.
-	oauth.UpdateDefaultExpiredAt = oauthDescExpiredAt.UpdateDefault.(func() time.Time)
-	// oauthDescRefreshToken is the schema descriptor for refresh_token field.
-	oauthDescRefreshToken := oauthFields[2].Descriptor()
-	// oauth.RefreshTokenValidator is a validator for the "refresh_token" field. It is called by the builders before save.
-	oauth.RefreshTokenValidator = oauthDescRefreshToken.Validators[0].(func(string) error)
+	// oauthDescMainToken is the schema descriptor for main_token field.
+	oauthDescMainToken := oauthFields[2].Descriptor()
+	// oauth.MainTokenValidator is a validator for the "main_token" field. It is called by the builders before save.
+	oauth.MainTokenValidator = oauthDescMainToken.Validators[0].(func(string) error)
 	permissionFields := schema.Permission{}.Fields()
 	_ = permissionFields
 	// permissionDescCreatedAt is the schema descriptor for created_at field.

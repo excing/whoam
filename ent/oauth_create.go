@@ -42,17 +42,9 @@ func (oc *OauthCreate) SetExpiredAt(t time.Time) *OauthCreate {
 	return oc
 }
 
-// SetNillableExpiredAt sets the expired_at field if the given value is not nil.
-func (oc *OauthCreate) SetNillableExpiredAt(t *time.Time) *OauthCreate {
-	if t != nil {
-		oc.SetExpiredAt(*t)
-	}
-	return oc
-}
-
-// SetRefreshToken sets the refresh_token field.
-func (oc *OauthCreate) SetRefreshToken(s string) *OauthCreate {
-	oc.mutation.SetRefreshToken(s)
+// SetMainToken sets the main_token field.
+func (oc *OauthCreate) SetMainToken(s string) *OauthCreate {
+	oc.mutation.SetMainToken(s)
 	return oc
 }
 
@@ -134,10 +126,6 @@ func (oc *OauthCreate) defaults() {
 		v := oauth.DefaultCreatedAt()
 		oc.mutation.SetCreatedAt(v)
 	}
-	if _, ok := oc.mutation.ExpiredAt(); !ok {
-		v := oauth.DefaultExpiredAt()
-		oc.mutation.SetExpiredAt(v)
-	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -148,12 +136,12 @@ func (oc *OauthCreate) check() error {
 	if _, ok := oc.mutation.ExpiredAt(); !ok {
 		return &ValidationError{Name: "expired_at", err: errors.New("ent: missing required field \"expired_at\"")}
 	}
-	if _, ok := oc.mutation.RefreshToken(); !ok {
-		return &ValidationError{Name: "refresh_token", err: errors.New("ent: missing required field \"refresh_token\"")}
+	if _, ok := oc.mutation.MainToken(); !ok {
+		return &ValidationError{Name: "main_token", err: errors.New("ent: missing required field \"main_token\"")}
 	}
-	if v, ok := oc.mutation.RefreshToken(); ok {
-		if err := oauth.RefreshTokenValidator(v); err != nil {
-			return &ValidationError{Name: "refresh_token", err: fmt.Errorf("ent: validator failed for field \"refresh_token\": %w", err)}
+	if v, ok := oc.mutation.MainToken(); ok {
+		if err := oauth.MainTokenValidator(v); err != nil {
+			return &ValidationError{Name: "main_token", err: fmt.Errorf("ent: validator failed for field \"main_token\": %w", err)}
 		}
 	}
 	if _, ok := oc.mutation.OwnerID(); !ok {
@@ -205,13 +193,13 @@ func (oc *OauthCreate) createSpec() (*Oauth, *sqlgraph.CreateSpec) {
 		})
 		_node.ExpiredAt = value
 	}
-	if value, ok := oc.mutation.RefreshToken(); ok {
+	if value, ok := oc.mutation.MainToken(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Value:  value,
-			Column: oauth.FieldRefreshToken,
+			Column: oauth.FieldMainToken,
 		})
-		_node.RefreshToken = value
+		_node.MainToken = value
 	}
 	if nodes := oc.mutation.OwnerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

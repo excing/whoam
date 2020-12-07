@@ -18,7 +18,7 @@ func (Oauth) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("expired_at"),
-		field.String("refresh_token").Immutable().Unique().NotEmpty(),
+		field.String("main_token").Immutable().Unique().NotEmpty(),
 	}
 }
 

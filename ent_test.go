@@ -103,10 +103,10 @@ func TestCreateOAuth(t *testing.T) {
 
 	t.Log(cloud, err)
 
-	refreshToken := New64BitID()
+	mainToken := New64BitID()
 
 	oAuth, err := client.Oauth.Create().
-		SetRefreshToken(refreshToken).
+		SetMainToken(mainToken).
 		SetOwner(aoli).
 		SetService(cloud).
 		Save(ctx)
@@ -114,14 +114,14 @@ func TestCreateOAuth(t *testing.T) {
 	t.Log(oAuth, err)
 
 	owner := client.Oauth.Query().
-		Where(oauth.RefreshTokenEQ(refreshToken)).
+		Where(oauth.MainTokenEQ(mainToken)).
 		QueryOwner().
 		FirstX(ctx)
 
 	t.Log(owner, err)
 
 	service := client.Oauth.Query().
-		Where(oauth.RefreshTokenEQ(refreshToken)).
+		Where(oauth.MainTokenEQ(mainToken)).
 		QueryService().
 		FirstX(ctx)
 
@@ -248,8 +248,8 @@ func TestUserLogin(t *testing.T) {
 
 	t.Log(accessToken, err)
 
-	refreshToken := New64BitID()
-	oauth, err := client.Oauth.Create().SetRefreshToken(refreshToken).SetOwner(aoli).SetService(blog).Save(ctx)
+	mainToken := New64BitID()
+	oauth, err := client.Oauth.Create().SetMainToken(mainToken).SetOwner(aoli).SetService(blog).Save(ctx)
 
 	t.Log(oauth, err)
 

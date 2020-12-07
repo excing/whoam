@@ -15,8 +15,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldExpiredAt holds the string denoting the expired_at field in the database.
 	FieldExpiredAt = "expired_at"
-	// FieldRefreshToken holds the string denoting the refresh_token field in the database.
-	FieldRefreshToken = "refresh_token"
+	// FieldMainToken holds the string denoting the main_token field in the database.
+	FieldMainToken = "main_token"
 
 	// EdgeOwner holds the string denoting the owner edge name in mutations.
 	EdgeOwner = "owner"
@@ -46,7 +46,7 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldExpiredAt,
-	FieldRefreshToken,
+	FieldMainToken,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the Oauth type.
@@ -73,10 +73,6 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultCreatedAt holds the default value on creation for the created_at field.
 	DefaultCreatedAt func() time.Time
-	// DefaultExpiredAt holds the default value on creation for the expired_at field.
-	DefaultExpiredAt func() time.Time
-	// UpdateDefaultExpiredAt holds the default value on update for the expired_at field.
-	UpdateDefaultExpiredAt func() time.Time
-	// RefreshTokenValidator is a validator for the "refresh_token" field. It is called by the builders before save.
-	RefreshTokenValidator func(string) error
+	// MainTokenValidator is a validator for the "main_token" field. It is called by the builders before save.
+	MainTokenValidator func(string) error
 )

@@ -81,7 +81,6 @@ func (ou *OauthUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
-	ou.defaults()
 	if len(ou.hooks) == 0 {
 		if err = ou.check(); err != nil {
 			return 0, err
@@ -130,14 +129,6 @@ func (ou *OauthUpdate) Exec(ctx context.Context) error {
 func (ou *OauthUpdate) ExecX(ctx context.Context) {
 	if err := ou.Exec(ctx); err != nil {
 		panic(err)
-	}
-}
-
-// defaults sets the default values of the builder before save.
-func (ou *OauthUpdate) defaults() {
-	if _, ok := ou.mutation.ExpiredAt(); !ok {
-		v := oauth.UpdateDefaultExpiredAt()
-		ou.mutation.SetExpiredAt(v)
 	}
 }
 
@@ -316,7 +307,6 @@ func (ouo *OauthUpdateOne) Save(ctx context.Context) (*Oauth, error) {
 		err  error
 		node *Oauth
 	)
-	ouo.defaults()
 	if len(ouo.hooks) == 0 {
 		if err = ouo.check(); err != nil {
 			return nil, err
@@ -365,14 +355,6 @@ func (ouo *OauthUpdateOne) Exec(ctx context.Context) error {
 func (ouo *OauthUpdateOne) ExecX(ctx context.Context) {
 	if err := ouo.Exec(ctx); err != nil {
 		panic(err)
-	}
-}
-
-// defaults sets the default values of the builder before save.
-func (ouo *OauthUpdateOne) defaults() {
-	if _, ok := ouo.mutation.ExpiredAt(); !ok {
-		v := oauth.UpdateDefaultExpiredAt()
-		ouo.mutation.SetExpiredAt(v)
 	}
 }
 

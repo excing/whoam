@@ -44,7 +44,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "expired_at", Type: field.TypeTime},
-		{Name: "refresh_token", Type: field.TypeString, Unique: true},
+		{Name: "main_token", Type: field.TypeString, Unique: true},
 		{Name: "oauth_service", Type: field.TypeInt, Nullable: true},
 		{Name: "user_oauths", Type: field.TypeInt, Nullable: true},
 	}

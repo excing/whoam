@@ -107,10 +107,10 @@ func ExpiredAt(v time.Time) predicate.Oauth {
 	})
 }
 
-// RefreshToken applies equality check predicate on the "refresh_token" field. It's identical to RefreshTokenEQ.
-func RefreshToken(v string) predicate.Oauth {
+// MainToken applies equality check predicate on the "main_token" field. It's identical to MainTokenEQ.
+func MainToken(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldRefreshToken), v))
+		s.Where(sql.EQ(s.C(FieldMainToken), v))
 	})
 }
 
@@ -266,22 +266,22 @@ func ExpiredAtLTE(v time.Time) predicate.Oauth {
 	})
 }
 
-// RefreshTokenEQ applies the EQ predicate on the "refresh_token" field.
-func RefreshTokenEQ(v string) predicate.Oauth {
+// MainTokenEQ applies the EQ predicate on the "main_token" field.
+func MainTokenEQ(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldRefreshToken), v))
+		s.Where(sql.EQ(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenNEQ applies the NEQ predicate on the "refresh_token" field.
-func RefreshTokenNEQ(v string) predicate.Oauth {
+// MainTokenNEQ applies the NEQ predicate on the "main_token" field.
+func MainTokenNEQ(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldRefreshToken), v))
+		s.Where(sql.NEQ(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenIn applies the In predicate on the "refresh_token" field.
-func RefreshTokenIn(vs ...string) predicate.Oauth {
+// MainTokenIn applies the In predicate on the "main_token" field.
+func MainTokenIn(vs ...string) predicate.Oauth {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -293,12 +293,12 @@ func RefreshTokenIn(vs ...string) predicate.Oauth {
 			s.Where(sql.False())
 			return
 		}
-		s.Where(sql.In(s.C(FieldRefreshToken), v...))
+		s.Where(sql.In(s.C(FieldMainToken), v...))
 	})
 }
 
-// RefreshTokenNotIn applies the NotIn predicate on the "refresh_token" field.
-func RefreshTokenNotIn(vs ...string) predicate.Oauth {
+// MainTokenNotIn applies the NotIn predicate on the "main_token" field.
+func MainTokenNotIn(vs ...string) predicate.Oauth {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -310,70 +310,70 @@ func RefreshTokenNotIn(vs ...string) predicate.Oauth {
 			s.Where(sql.False())
 			return
 		}
-		s.Where(sql.NotIn(s.C(FieldRefreshToken), v...))
+		s.Where(sql.NotIn(s.C(FieldMainToken), v...))
 	})
 }
 
-// RefreshTokenGT applies the GT predicate on the "refresh_token" field.
-func RefreshTokenGT(v string) predicate.Oauth {
+// MainTokenGT applies the GT predicate on the "main_token" field.
+func MainTokenGT(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldRefreshToken), v))
+		s.Where(sql.GT(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenGTE applies the GTE predicate on the "refresh_token" field.
-func RefreshTokenGTE(v string) predicate.Oauth {
+// MainTokenGTE applies the GTE predicate on the "main_token" field.
+func MainTokenGTE(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldRefreshToken), v))
+		s.Where(sql.GTE(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenLT applies the LT predicate on the "refresh_token" field.
-func RefreshTokenLT(v string) predicate.Oauth {
+// MainTokenLT applies the LT predicate on the "main_token" field.
+func MainTokenLT(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldRefreshToken), v))
+		s.Where(sql.LT(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenLTE applies the LTE predicate on the "refresh_token" field.
-func RefreshTokenLTE(v string) predicate.Oauth {
+// MainTokenLTE applies the LTE predicate on the "main_token" field.
+func MainTokenLTE(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldRefreshToken), v))
+		s.Where(sql.LTE(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenContains applies the Contains predicate on the "refresh_token" field.
-func RefreshTokenContains(v string) predicate.Oauth {
+// MainTokenContains applies the Contains predicate on the "main_token" field.
+func MainTokenContains(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.Contains(s.C(FieldRefreshToken), v))
+		s.Where(sql.Contains(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenHasPrefix applies the HasPrefix predicate on the "refresh_token" field.
-func RefreshTokenHasPrefix(v string) predicate.Oauth {
+// MainTokenHasPrefix applies the HasPrefix predicate on the "main_token" field.
+func MainTokenHasPrefix(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.HasPrefix(s.C(FieldRefreshToken), v))
+		s.Where(sql.HasPrefix(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenHasSuffix applies the HasSuffix predicate on the "refresh_token" field.
-func RefreshTokenHasSuffix(v string) predicate.Oauth {
+// MainTokenHasSuffix applies the HasSuffix predicate on the "main_token" field.
+func MainTokenHasSuffix(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.HasSuffix(s.C(FieldRefreshToken), v))
+		s.Where(sql.HasSuffix(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenEqualFold applies the EqualFold predicate on the "refresh_token" field.
-func RefreshTokenEqualFold(v string) predicate.Oauth {
+// MainTokenEqualFold applies the EqualFold predicate on the "main_token" field.
+func MainTokenEqualFold(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.EqualFold(s.C(FieldRefreshToken), v))
+		s.Where(sql.EqualFold(s.C(FieldMainToken), v))
 	})
 }
 
-// RefreshTokenContainsFold applies the ContainsFold predicate on the "refresh_token" field.
-func RefreshTokenContainsFold(v string) predicate.Oauth {
+// MainTokenContainsFold applies the ContainsFold predicate on the "main_token" field.
+func MainTokenContainsFold(v string) predicate.Oauth {
 	return predicate.Oauth(func(s *sql.Selector) {
-		s.Where(sql.ContainsFold(s.C(FieldRefreshToken), v))
+		s.Where(sql.ContainsFold(s.C(FieldMainToken), v))
 	})
 }
 

@@ -22,8 +22,8 @@ type Oauth struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// ExpiredAt holds the value of the "expired_at" field.
 	ExpiredAt time.Time `json:"expired_at,omitempty"`
-	// RefreshToken holds the value of the "refresh_token" field.
-	RefreshToken string `json:"refresh_token,omitempty"`
+	// MainToken holds the value of the "main_token" field.
+	MainToken string `json:"main_token,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the OauthQuery when eager-loading is set.
 	Edges         OauthEdges `json:"edges"`
@@ -76,7 +76,7 @@ func (*Oauth) scanValues() []interface{} {
 		&sql.NullInt64{},  // id
 		&sql.NullTime{},   // created_at
 		&sql.NullTime{},   // expired_at
-		&sql.NullString{}, // refresh_token
+		&sql.NullString{}, // main_token
 	}
 }
 
@@ -111,9 +111,9 @@ func (o *Oauth) assignValues(values ...interface{}) error {
 		o.ExpiredAt = value.Time
 	}
 	if value, ok := values[2].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field refresh_token", values[2])
+		return fmt.Errorf("unexpected type %T for field main_token", values[2])
 	} else if value.Valid {
-		o.RefreshToken = value.String
+		o.MainToken = value.String
 	}
 	values = values[3:]
 	if len(values) == len(oauth.ForeignKeys) {
@@ -170,8 +170,8 @@ func (o *Oauth) String() string {
 	builder.WriteString(o.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", expired_at=")
 	builder.WriteString(o.ExpiredAt.Format(time.ANSIC))
-	builder.WriteString(", refresh_token=")
-	builder.WriteString(o.RefreshToken)
+	builder.WriteString(", main_token=")
+	builder.WriteString(o.MainToken)
 	builder.WriteByte(')')
 	return builder.String()
 }
