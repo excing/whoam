@@ -10,6 +10,7 @@
   <link rel="manifest" href="/favicon_io/site.webmanifest">
   <title>OAuth授权-WHOAM</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ThreeTenth/css-theme@v0.1.1/colours.css" />
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
 </head>
 
@@ -22,66 +23,33 @@
     </form>
   </div>
   <script>
-    function Post(url, data, success, failure = undefined, error = undefined) {
-      var urlEncodedData = "";
-      var urlEncodedDataPairs = [];
-      var name;
-
-      // 将数据对象转换为URL编码的键/值对数组。
-      for (name in data) {
-        urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(data[name]));
-      }
-
-      // 将配对合并为单个字符串，并将所有%编码的空格替换为
-      // “+”字符；匹配浏览器表单提交的行为。
-      urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
-
-      var request = new XMLHttpRequest();
-      request.open("POST", url);
-      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-      request.onload = function () {
-        if (200 <= request.status && request.status < 300) {
-          success(request.status, request.response)
-        } else if (failure != undefined) {
-          failure(request.status, request.response)
-        }
-      }
-      request.error = error
-      request.send(urlEncodedData);
-    }
-
-    function Get(url, headers, success, failure = undefined, error = undefined) {
-      var request = new XMLHttpRequest();
-      request.open("GET", url);
-      for (name in headers) {
-        request.setRequestHeader(name, headers[name]);
-      }
-      request.onload = function () {
-        if (200 <= request.status && request.status < 300) {
-          success(request.status, request.response)
-        } else if (failure != undefined) {
-          failure(request.status, request.response)
-        }
-      }
-      request.error = error
-      request.send();
-    }
-
     function loginCode() {
       const email = document.getElementById('email').value
       const state = Math.random().toString(36).slice(2)
-      Post('/api/v1/user/main/code', {
+
+      const form = {
         email: email,
         state: state,
-      }, function (status, response) {
-        loginToken = response
-        loginState = state
-        alert('Sended')
-      }, function (status, response) {
-        alert(response);
-      }, function () {
-        alert('Network connection failed')
+      }
+
+      // js object value of URLSearchParams
+      var urlForm = new URLSearchParams()
+      for (name in form) {
+        urlForm.append(name, form[name])
+      }
+
+      axios({
+        method: 'post',
+        url: '/api/v1/user/main/code',
+        data: urlForm,
       })
+        .then(function (response) {
+          loginToken = response.data
+          loginState = state
+        })
+        .catch(function (error) {
+          alert(error.response.data);
+        });
     }
 
     function loginAuth() {
@@ -89,19 +57,33 @@
       const state = loginState
       const token = loginToken
       const code = document.getElementById('code').value
-      Post('/api/v1/user/main/auth', {
+
+      const form = {
         email: email,
         state: state,
         token: token,
         code: code,
-      }, function (status, response) {
-        var user = JSON.parse(response)
-        Cookies.set('userId', user.userId)
-        Cookies.set('accessToken', user.accessToken)
-        saveItem("mainToken", user.mainToken)
+      }
 
-        window.location.href = "/user/oauth" + window.location.search + "&again=true"
+      // js object value of URLSearchParams
+      var urlForm = new URLSearchParams()
+      for (name in form) {
+        urlForm.append(name, form[name])
+      }
+
+      axios({
+        method: 'post',
+        url: '/api/v1/user/main/auth',
+        data: urlForm,
       })
+        .then(function (response) {
+          var user = response.data
+          Cookies.set('userId', user.userId)
+          Cookies.set('accessToken', user.accessToken)
+          saveItem("mainToken", user.mainToken)
+
+          window.location.href = "/user/oauth" + window.location.search + "&again=true"
+        })
     }
 
     function saveItem(key, val) {
