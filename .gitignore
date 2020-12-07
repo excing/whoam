@@ -12,6 +12,12 @@ __debug_bin
 # debugger for chrome
 debug.log
 
+# facebook/ent
+
+ent/*
+!ent/schema
+!ent/generate.go
+
 # project
 config.json
 test.db
