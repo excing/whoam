@@ -19,11 +19,11 @@ type RAS struct {
 func (RAS) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New),
-		field.String("subject"),
-		field.JSON("post_uri", &url.URL{}),
-		field.JSON("redirect_uri", &url.URL{}),
-		field.Enum("state").Values("new", "allowed", "rejected", "abstained", "voided"),
 		field.Time("created_at").Default(time.Now).Immutable(),
+		field.String("subject"),
+		field.JSON("post_uri", &url.URL{}).Immutable(),
+		field.JSON("redirect_uri", &url.URL{}).Immutable(),
+		field.Enum("state").Values("new", "allowed", "rejected", "abstained", "voided").Nillable(),
 	}
 }
 
