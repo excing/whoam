@@ -30,6 +30,6 @@ func (RAS) Fields() []ent.Field {
 // Edges of the RAS.
 func (RAS) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("organizer", User.Type).Unique(),
+		edge.To("organizer", User.Type),
 	}
 }
