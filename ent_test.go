@@ -5,15 +5,108 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/enttest"
 	"whoam.xyz/ent/method"
 	"whoam.xyz/ent/migrate"
 	"whoam.xyz/ent/oauth"
 	"whoam.xyz/ent/permission"
+	"whoam.xyz/ent/schema"
 	"whoam.xyz/ent/service"
 	"whoam.xyz/ent/user"
+	"whoam.xyz/ent/vote"
 )
+
+func TestVoteRAS(t *testing.T) {
+	ctx, client := CreateClient(t)
+
+	ras, err := client.RAS.Create().
+		SetSubject("this is a test RAS").
+		SetPostURI("https://saynice.whoam.xyz/post/10725").
+		SetRedirectURI("https://127.0.0.1:5500").
+		Save(ctx)
+
+	if err != nil {
+		t.Fatalf("create ras failed %v", err)
+	}
+
+	t.Logf("create ras is %v", ras)
+
+	names := make([]*ent.UserCreate, 1000)
+
+	for i := 0; i < len(names); i++ {
+		names[i] = client.User.Create().SetEmail(New16BitID() + "@example.com")
+	}
+
+	_, err = client.User.CreateBulk(names...).Save(ctx)
+
+	if err != nil {
+		t.Fatalf("create users failed %v", err)
+	}
+
+	users := make([]int, 10)
+	for i := 0; i < len(users); i++ {
+		users[i], err = client.User.Query().
+			Order(schema.Rand()).
+			Limit(1).
+			Select(user.FieldID).
+			Int(ctx)
+		if err != nil {
+			t.Logf("query user failed %v", err)
+		}
+	}
+
+	t.Logf("random users %v", users)
+
+	rasID := ras.ID.String()
+
+	rases := NewBox(4096, 3)
+	rases.SetVal(rasID, users)
+
+	var voters []int
+	err = rases.Val(rasID, &voters)
+
+	if err != nil {
+		t.Fatalf("box hasn't ras %d, failed %v", ras.ID, err)
+	}
+
+	voteCreates := make([]*ent.VoteCreate, len(voters))
+	rasUUID, _ := uuid.Parse(rasID)
+	for i, v := range voters {
+		voteCreates[i] = client.Vote.Create().SetState(vote.StateAllowed).SetOwnerID(v).SetDstID(rasUUID)
+	}
+
+	votes, err := client.Vote.CreateBulk(voteCreates...).Save(ctx)
+	if err != nil {
+		t.Fatalf("create votes failed %v", err)
+	}
+
+	t.Logf("create votes %v", votes)
+
+	for _, v := range votes {
+		u, _ := v.QueryOwner().Only(ctx)
+		s, _ := v.QueryDst().Only(ctx)
+
+		t.Logf("user %v, RAS %v", u, s)
+	}
+}
+
+func TestCreateRAS(t *testing.T) {
+	ctx, client := CreateClient(t)
+
+	ras, err := client.RAS.Create().
+		SetSubject("this is a test RAS").
+		SetPostURI("https://saynice.whoam.xyz/post/10725").
+		SetRedirectURI("https://127.0.0.1:5500").
+		Save(ctx)
+
+	if err != nil {
+		t.Fatalf("create ras failed %v", err)
+	}
+
+	t.Logf("create ras is %v", ras)
+}
 
 func CreateClient(t *testing.T) (context.Context, *ent.Client) {
 	opts := []enttest.Option{
