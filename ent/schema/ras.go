@@ -34,6 +34,7 @@ func (RAS) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("organizer", User.Type).Ref("sessions").Unique(),
 		edge.To("votes", Vote.Type),
+		edge.To("accord", Accord.Type).Unique().Required(),
 	}
 }
 
