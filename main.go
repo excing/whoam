@@ -9,8 +9,7 @@ import (
 	"github.com/excing/goflag"
 	"github.com/gin-gonic/gin"
 	"github.com/gobuffalo/packr/v2"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	_ "github.com/mattn/go-sqlite3"
 	"whoam.xyz/ent"
 )
 
@@ -33,7 +32,6 @@ const (
 )
 
 var config Config
-var db *gorm.DB
 var ctx context.Context
 var client *ent.Client
 
@@ -55,11 +53,6 @@ func main() {
 	time.FixedZone("CST", 8*3600)
 
 	var err error
-	db, err = gorm.Open(sqlite.Open(config.Db), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
 	client, err = ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
 	if err != nil {
 		panic("failed to open database: " + err.Error())
