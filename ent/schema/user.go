@@ -19,7 +19,7 @@ func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
-		field.String("email").Match(regexp.MustCompile(`\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*`)),
+		field.String("email").Match(regexp.MustCompile(`\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*`)).Unique(),
 	}
 }
 
@@ -28,5 +28,7 @@ func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("oauths", Oauth.Type),
 		edge.To("permissions", Permission.Type),
+		edge.To("votes", Vote.Type),
+		edge.To("sessions", RAS.Type),
 	}
 }
