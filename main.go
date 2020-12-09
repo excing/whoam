@@ -108,20 +108,20 @@ func main() {
 	router.GET("/user/login", inout(PageUserLogin))
 	router.GET("/user/oauth", inout(PageUserOAuth))
 
-	apiV1 := router.Group("/api/v1")
+	v1 := router.Group("/api/v1")
 
-	apiV1.POST("/user/main/code", inout(PostMainCode))
-	apiV1.POST("/user/main/auth", inout(PostUserAuth))
+	v1.POST("/user/main/code", inout(PostMainCode))
+	v1.POST("/user/main/auth", inout(PostUserAuth))
 
-	apiV1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
-	apiV1.GET("/user/oauth/token", inout(GetOAuthCode))
-	apiV1.GET("/user/oauth/state", inout(GetOAuthState))
-	apiV1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
+	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
+	v1.GET("/user/oauth/token", inout(GetOAuthCode))
+	v1.GET("/user/oauth/state", inout(GetOAuthState))
+	v1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
 
-	apiV1.POST("/service", inout(PostService))
-	apiV1.POST("/service/:id/method", inout(PostServiceMethod))
+	v1.POST("/service", inout(PostService))
+	v1.POST("/service/:id/method", inout(PostServiceMethod))
 
-	apiV1.POST("/ras/new", inout(NewRAS))
+	v1.POST("/ras/new", inout(NewRAS))
 	// apiV1.POST("/ras/vote", inout(PostRASpaceVote))
 	// apiV1.GET("/ras/:id", inout(GetRASpace))
 	// apiV1.POST("/ras/rule", inout(NewRASpaceRule))
