@@ -36,6 +36,16 @@ type newRAS struct {
 	RedirectURI string
 }
 
+// NewArticle can create a new article
+func NewArticle(c *Context) error {
+	return c.NoContent()
+}
+
+// NewAccord can create a new accord
+func NewAccord(c *Context) error {
+	return c.NoContent()
+}
+
 // NewRAS create a new random anonymous space
 func NewRAS(c *Context) error {
 	var form newRAS
