@@ -21,10 +21,32 @@ import (
 func TestVoteRAS(t *testing.T) {
 	ctx, client := CreateClient(t)
 
+	subjects := []string{
+		"Don't post political, religious, etc. content",
+		"Don't post sex and drug dealing content",
+		"Do not post gambling, violent or gore content",
+	}
+
+	articleCreates := make([]*ent.ArticleCreate, len(subjects))
+	for i, v := range subjects {
+		articleCreates[i] = client.Article.Create().SetSubject(v)
+	}
+
+	articles, err := client.Article.CreateBulk(articleCreates...).Save(ctx)
+
+	if err != nil {
+		t.Fatalf("create articles failed %v", err)
+	}
+
+	t.Logf("create articles %v", articles)
+
+	accord, err := client.Accord.Create().SetName("Three-Point Rule").AddArticles(articles...).Save(ctx)
+
 	ras, err := client.RAS.Create().
 		SetSubject("this is a test RAS").
 		SetPostURI("https://saynice.whoam.xyz/post/10725").
 		SetRedirectURI("https://127.0.0.1:5500").
+		SetAccord(accord).
 		Save(ctx)
 
 	if err != nil {
