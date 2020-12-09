@@ -17,15 +17,15 @@ type Vote struct {
 func (Vote) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").Default(time.Now),
-		field.Enum("state").Values("allowed", "rejected", "abstained").Nillable().Immutable(),
-		field.String("remark").Optional(),
+		field.Enum("state").Values("allowed", "rejected", "abstained").Immutable(),
+		field.String("subject").Optional(),
 	}
 }
 
 // Edges of the Vote.
 func (Vote) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("owner", User.Type).Unique(),
-		edge.From("space_at", RAS.Type).Unique(),
+		edge.From("owner", User.Type).Ref("votes").Required().Unique(),
+		edge.From("dst", RAS.Type).Ref("votes").Required().Unique(),
 	}
 }
