@@ -15,6 +15,7 @@ type Accord struct {
 func (Accord) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
+		field.String("about").Optional(),
 	}
 }
 
