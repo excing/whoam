@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 
+	"whoam.xyz/ent"
+	"whoam.xyz/ent/accord"
 	"whoam.xyz/ent/article"
 )
 
@@ -30,6 +32,49 @@ func NewArticle(c *Context) error {
 	}
 
 	return c.Ok(strconv.Itoa(article.ID))
+}
+
+// GetArticle returns 200 and the specified Article,
+// if the specified Article cannot be found, it returns a non-2XX status code
+func GetArticle(c *Context) error {
+	id, err := c.ParamInt("id")
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	article, err := client.Article.Query().Where(article.IDEQ(id)).Only(ctx)
+
+	if err != nil {
+		return c.NotFound(err.Error())
+	}
+
+	return c.Ok(&article)
+}
+
+// GetArticles returns 200 and the Article List of the specified page number,
+// if not, it returns a non-2XX status code
+func GetArticles(c *Context) error {
+	start, ok, err := c.QueryInt("start")
+	if err != nil {
+		if ok {
+			return c.BadRequest(err.Error())
+		}
+	}
+	count, ok, err := c.QueryInt("count")
+	if err != nil {
+		if ok {
+			return c.BadRequest(err.Error())
+		}
+		count = 10
+	}
+
+	articles, err := client.Article.Query().Order(ent.Desc(article.FieldID)).Offset(start).Limit(count).All(ctx)
+
+	if err != nil {
+		return c.NotFound(err.Error())
+	}
+
+	return c.Ok(&articles)
 }
 
 type newAccordForm struct {
@@ -73,10 +118,10 @@ func NewAccord(c *Context) error {
 				i++
 			}
 		}
-		return c.BadRequest("Invalid article ids: %v", missIDs)
+		return c.NotFound("Invalid article ids: %v", missIDs)
 	}
 	if err != nil {
-		return c.BadRequest(err.Error())
+		return c.NotFound(err.Error())
 	}
 
 	accord, err := client.Accord.Create().SetName(form.Name).SetAbout(form.About).AddArticleIDs(articleIDs...).Save(ctx)
@@ -85,6 +130,72 @@ func NewAccord(c *Context) error {
 	}
 
 	return c.Ok(accord.ID)
+}
+
+// GetAccord returns 200 and the specified accord,
+// if cannot be found, it returns a non-2XX status code
+func GetAccord(c *Context) error {
+	id, err := c.ParamInt("id")
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	_accord, err := client.Accord.Query().Where(accord.IDEQ(id)).Only(ctx)
+
+	if err != nil {
+		return c.NotFound(err.Error())
+	}
+
+	return c.Ok(&_accord)
+}
+
+// GetAccords returns 200 and the accords of the specified page number,
+// if cannot be found, it returns a non-2XX status code
+func GetAccords(c *Context) error {
+	start, ok, err := c.QueryInt("start")
+	if err != nil {
+		if ok {
+			return c.BadRequest(err.Error())
+		}
+	}
+	count, ok, err := c.QueryInt("count")
+	if err != nil {
+		if ok {
+			return c.BadRequest(err.Error())
+		}
+		count = 10
+	}
+
+	accords, err := client.Accord.Query().Order(ent.Desc(accord.FieldID)).Offset(start).Limit(count).All(ctx)
+
+	if err != nil {
+		return c.NotFound(err.Error())
+	}
+
+	return c.Ok(&accords)
+}
+
+// GetAccordArticles returns 200 and the articles of the specified accord,
+// if cannot be found, it returns a non-2XX status code
+func GetAccordArticles(c *Context) error {
+	id, err := c.ParamInt("id")
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	_accord, err := client.Accord.Query().Where(accord.IDEQ(id)).Only(ctx)
+
+	if err != nil {
+		return c.NotFound(err.Error())
+	}
+
+	articles, err := _accord.QueryArticles().All(ctx)
+
+	if err != nil {
+		return c.NotFound(err.Error())
+	}
+
+	return c.Ok(&articles)
 }
 
 type newRASForm struct {

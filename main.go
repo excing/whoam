@@ -123,7 +123,12 @@ func main() {
 	v1.POST("/service/:id/method", inout(PostServiceMethod))
 
 	v1.POST("/article/new", inout(NewArticle))
+	v1.GET("/article/:id", inout(GetArticle))
+	v1.GET("/articles", inout(GetArticles))
 	v1.POST("/accord/new", inout(NewAccord))
+	v1.GET("/accord/:id", inout(GetAccord))
+	v1.GET("/accords", inout(GetAccords))
+	v1.GET("/accord/:id/articles", inout(GetAccordArticles))
 
 	v1.POST("/ras/new", inout(NewRAS))
 	// apiV1.POST("/ras/vote", inout(PostRASpaceVote))
