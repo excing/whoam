@@ -53,7 +53,15 @@ func main() {
 	time.FixedZone("CST", 8*3600)
 
 	var err error
-	client, err = ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
+
+	if config.Debug {
+		opts := []ent.Option{
+			ent.Debug(),
+		}
+		client, err = ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1", opts...)
+	} else {
+		client, err = ent.Open("sqlite3", "file:"+config.Db+"?_fk=1")
+	}
 	if err != nil {
 		panic("failed to open database: " + err.Error())
 	}
