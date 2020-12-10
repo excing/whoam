@@ -114,8 +114,8 @@ func main() {
 	v1.POST("/service", inout(PostService))
 	v1.POST("/service/:id/method", inout(PostServiceMethod))
 
-	v1.POST("/article/new", inout(NewArticle))
 	v1.POST("/accord/new", inout(NewAccord))
+	v1.POST("/accord/:id/article", inout(PostAccordArticle))
 
 	v1.POST("/ras/new", inout(NewRAS))
 	// apiV1.POST("/ras/vote", inout(PostRASpaceVote))
