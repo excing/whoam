@@ -7,6 +7,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
@@ -37,6 +38,38 @@ func (p *Context) Render(code int, r render.Render) error {
 	}
 
 	return r.Render(p.Writer)
+}
+
+// ParamInt return the int value of the specified param,
+// return error if the value is empty or type error
+func (p *Context) ParamInt(key string) (int, error) {
+	val, ok := p.Params.Get(key)
+	if !ok {
+		return 0, errors.New(key + " is empty")
+	}
+
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, errors.New("Type error: " + key + " should be `int` type")
+	}
+
+	return i, nil
+}
+
+// QueryInt return the keyed url query value(int),
+// return error if the value is empty or type error
+func (p *Context) QueryInt(key string) (int, bool, error) {
+	val, ok := p.GetQuery(key)
+	if !ok {
+		return 0, false, errors.New(key + " isn't exist")
+	}
+
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, true, errors.New("Type error: " + key + " should be `int` type")
+	}
+
+	return i, true, nil
 }
 
 // FormValue returns the form value of the specified key,
