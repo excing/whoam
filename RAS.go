@@ -88,15 +88,13 @@ func NewAccord(c *Context) error {
 }
 
 type newRASForm struct {
-	Subject     string
-	PostURL     string
-	RedirectURI string
 }
 
-// NewRAS create a new random anonymous space
+// NewRAS can create a new RAS
 func NewRAS(c *Context) error {
 	var form newRASForm
-	if err := c.ParseForm(&form); err != nil {
+	err := c.ParseForm(&form)
+	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
