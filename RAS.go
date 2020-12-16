@@ -199,6 +199,11 @@ func GetAccordArticles(c *Context) error {
 }
 
 type newRASForm struct {
+	Subject     string `schema:"subject,required"`
+	PostURI     string `schema:"post_uri,required"`
+	RedirectURI string `schema:"redirect_uri,required"`
+	Accord      int    `schema:"accord,required"`
+	Organizer   int
 }
 
 // NewRAS can create a new RAS
@@ -209,5 +214,18 @@ func NewRAS(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	return c.NoContent()
+	rasCreate := client.RAS.
+		Create().
+		SetSubject(form.Subject).
+		SetPostURI(form.PostURI).
+		SetRedirectURI(form.RedirectURI).
+		SetAccordID(form.Accord)
+
+	if 0 <= form.Organizer {
+		rasCreate.SetOrganizerID(form.Organizer)
+	}
+
+	ras, err := rasCreate.Save(ctx)
+
+	return c.Ok(ras.ID)
 }
