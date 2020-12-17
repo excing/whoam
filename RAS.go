@@ -229,3 +229,13 @@ func NewRAS(c *Context) error {
 
 	return c.Ok(ras.ID)
 }
+
+// GetRAS get RAS
+func GetRAS(c *Context) error {
+	return c.NoContent()
+}
+
+// VoteRAS vote RAS
+func VoteRAS(c *Context) error {
+	return c.NoContent()
+}

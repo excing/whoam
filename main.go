@@ -131,10 +131,8 @@ func main() {
 	v1.GET("/accord/:id/articles", inout(GetAccordArticles))
 
 	v1.POST("/ras/new", inout(NewRAS))
-	// apiV1.POST("/ras/vote", inout(PostRASpaceVote))
-	// apiV1.GET("/ras/:id", inout(GetRASpace))
-	// apiV1.POST("/ras/rule", inout(NewRASpaceRule))
-	// apiV1.PUT("/ras/rule", inout(GetRASpaceRule))
+	v1.GET("/ras/:id", inout(GetRAS))
+	v1.POST("/ras/vote", inout(VoteRAS))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }
