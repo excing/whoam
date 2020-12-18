@@ -4,9 +4,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/accord"
 	"whoam.xyz/ent/article"
+	"whoam.xyz/ent/ras"
 )
 
 // InitRAS init ras service
@@ -232,7 +234,20 @@ func NewRAS(c *Context) error {
 
 // GetRAS get RAS
 func GetRAS(c *Context) error {
-	return c.NoContent()
+	id := c.Param("id")
+
+	UUID, err := uuid.Parse(id)
+
+	if err != nil {
+		c.BadRequest(err.Error())
+	}
+
+	ras, err := client.RAS.Query().Where(ras.IDEQ(UUID)).Only(ctx)
+
+	if err != nil {
+		c.InternalServerError(err.Error())
+	}
+	return c.Ok(&ras)
 }
 
 // VoteRAS vote RAS
