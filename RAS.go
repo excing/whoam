@@ -7,12 +7,18 @@ import (
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/accord"
 	"whoam.xyz/ent/article"
+	"whoam.xyz/ent/schema"
 	"whoam.xyz/ent/user"
 	"whoam.xyz/ent/vote"
 )
 
+var rasBox *Box
+
 // InitRAS init ras service
 func InitRAS() {
+	// size: 3M
+	// default timeout: 30day
+	rasBox = NewBox(3*1024*1024, 30*24*60*60)
 }
 
 type newArticleForm struct {
@@ -216,7 +222,9 @@ func NewRAS(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	rasCreate := client.RAS.
+	tx, err := client.Tx(ctx)
+
+	rasCreate := tx.RAS.
 		Create().
 		SetSubject(form.Subject).
 		SetPostURI(form.PostURI).
@@ -228,6 +236,35 @@ func NewRAS(c *Context) error {
 	}
 
 	ras, err := rasCreate.Save(ctx)
+	if err != nil {
+		c.InternalServerError(err.Error())
+	}
+
+	// todo Golang goroutine
+
+	users, err := tx.User.Query().
+		Order(schema.Rand()).
+		Limit(10).
+		Select(user.FieldID).
+		Ints(ctx)
+	if err != nil {
+		c.InternalServerError(err.Error())
+	}
+
+	for _, v := range users {
+		m := make(map[int]*ent.RAS)
+		rasBox.ValI(v, m)
+		m[v] = ras
+		err = rasBox.SetValI(v, m)
+		if err != nil {
+			return c.InternalServerError(err.Error())
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
 
 	return c.Ok(ras.ID)
 }
