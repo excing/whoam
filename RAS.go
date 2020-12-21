@@ -266,7 +266,7 @@ func NewRAS(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.Ok(ras.ID)
+	return c.NoContent()
 }
 
 // GetRAS get RAS
