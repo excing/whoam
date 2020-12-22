@@ -8,7 +8,6 @@ import (
 	"github.com/facebook/ent/dialect/sql"
 	"github.com/facebook/ent/schema/edge"
 	"github.com/facebook/ent/schema/field"
-	"github.com/google/uuid"
 )
 
 // RAS holds the schema definition for the RAS(random anonymous space) entity.
@@ -19,7 +18,6 @@ type RAS struct {
 // Fields of the RAS.
 func (RAS) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(uuid.New),
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("udpated_at").Default(time.Now).UpdateDefault(time.Now),
 		field.String("subject"),
