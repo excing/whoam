@@ -254,8 +254,8 @@ func NewRAS(c *Context) error {
 	for _, v := range users {
 		m := make(map[int]*ent.RAS)
 		rasBox.ValI(v, m)
-		m[v] = ras
-		err = rasBox.SetValI(v, m)
+		m[ras.ID] = ras
+		err = rasBox.SetValI(v, &m)
 		if err != nil {
 			return c.InternalServerError(err.Error())
 		}
@@ -294,7 +294,47 @@ func GetRAS(c *Context) error {
 	return c.Ok(&ras)
 }
 
+type postVoteForm struct {
+	RASID int
+	State string
+	Note  string
+}
+
 // VoteRAS vote RAS
 func VoteRAS(c *Context) error {
+	token, err := FilterJWTToken(c.GetHeader("Authorization"), signingKey)
+	if err != nil {
+		return c.Unauthorized("Invalid token, please login again")
+	}
+
+	userID := int(token.OtherID)
+
+	var form postVoteForm
+	err = c.ParseForm(&form)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	m := make(map[int]*ent.RAS)
+	err = rasBox.ValI(userID, &m)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	ras, ok := m[form.RASID]
+	if !ok {
+		return c.BadRequest(err.Error())
+	}
+
+	_, err = client.Vote.Create().
+		SetDstID(ras.ID).
+		SetOwnerID(userID).
+		SetState(vote.State(form.State)).
+		SetSubject(form.Note).
+		Save(ctx)
+	if err != nil {
+		c.InternalServerError(err.Error())
+	}
+
 	return c.NoContent()
 }
