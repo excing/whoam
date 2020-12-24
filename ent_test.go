@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/enttest"
 	"whoam.xyz/ent/method"
@@ -81,22 +80,21 @@ func TestVoteRAS(t *testing.T) {
 
 	t.Logf("random users %v", users)
 
-	rasID := ras.ID.String()
+	rasID := ras.ID
 
 	rases := NewBox(4096, 3)
-	rases.SetVal(rasID, users)
+	rases.SetValI(rasID, users)
 
 	var voters []int
-	err = rases.Val(rasID, &voters)
+	err = rases.ValI(rasID, &voters)
 
 	if err != nil {
 		t.Fatalf("box hasn't ras %d, failed %v", ras.ID, err)
 	}
 
 	voteCreates := make([]*ent.VoteCreate, len(voters))
-	rasUUID, _ := uuid.Parse(rasID)
 	for i, v := range voters {
-		voteCreates[i] = client.Vote.Create().SetState(vote.StateAllowed).SetOwnerID(v).SetDstID(rasUUID)
+		voteCreates[i] = client.Vote.Create().SetState(vote.StateAllowed).SetOwnerID(v).SetDstID(rasID)
 	}
 
 	votes, err := client.Vote.CreateBulk(voteCreates...).Save(ctx)
