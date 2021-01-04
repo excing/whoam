@@ -211,7 +211,6 @@ type newRASForm struct {
 	PostURI     string `schema:"post_uri,required"`
 	RedirectURI string `schema:"redirect_uri,required"`
 	Accord      int    `schema:"accord,required"`
-	Organizer   int
 }
 
 // NewRAS can create a new RAS
@@ -230,7 +229,6 @@ func NewRAS(c *Context) error {
 		SetPostURI(form.PostURI).
 		SetRedirectURI(form.RedirectURI).
 		SetAccordID(form.Accord).
-		SetOrganizerID(form.Organizer).
 		Save(ctx)
 
 	if err != nil {
