@@ -224,23 +224,18 @@ func NewRAS(c *Context) error {
 
 	tx, err := client.Tx(ctx)
 
-	rasCreate := tx.RAS.
+	ras, err := tx.RAS.
 		Create().
 		SetSubject(form.Subject).
 		SetPostURI(form.PostURI).
 		SetRedirectURI(form.RedirectURI).
-		SetAccordID(form.Accord)
+		SetAccordID(form.Accord).
+		SetOrganizerID(form.Organizer).
+		Save(ctx)
 
-	if 0 <= form.Organizer {
-		rasCreate.SetOrganizerID(form.Organizer)
-	}
-
-	ras, err := rasCreate.Save(ctx)
 	if err != nil {
 		c.InternalServerError(err.Error())
 	}
-
-	// todo Golang goroutine
 
 	users, err := tx.User.Query().
 		Order(schema.Rand()).
@@ -252,9 +247,13 @@ func NewRAS(c *Context) error {
 	}
 
 	for _, v := range users {
-		m := make(map[int]*ent.RAS)
-		rasBox.ValI(v, m)
-		m[ras.ID] = ras
+		var m []*ent.RAS
+		err = rasBox.ValI(v, &m)
+		if err != nil {
+			return c.InternalServerError(err.Error())
+		}
+
+		m = append(m, ras)
 		err = rasBox.SetValI(v, &m)
 		if err != nil {
 			return c.InternalServerError(err.Error())
@@ -277,21 +276,17 @@ func GetRAS(c *Context) error {
 		c.BadRequest(err.Error())
 	}
 
-	vote, err := client.Vote.Query().
-		Where(vote.HasOwnerWith(user.IDEQ(id))).
-		Only(ctx)
-
+	var m []*ent.RAS
+	err = rasBox.ValI(id, &m)
 	if err != nil {
-		c.InternalServerError(err.Error())
+		return c.InternalServerError(err.Error())
 	}
 
-	ras, err := vote.QueryOwner().Only(ctx)
-
-	if err != nil {
-		c.InternalServerError(err.Error())
+	if 0 == len(m) {
+		return c.NoContent()
 	}
 
-	return c.Ok(&ras)
+	return c.Ok(&m[0])
 }
 
 type postVoteForm struct {
