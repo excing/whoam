@@ -93,8 +93,8 @@ func TestVoteRAS(t *testing.T) {
 	}
 
 	voteCreates := make([]*ent.VoteCreate, len(voters))
-	for i, v := range voters {
-		voteCreates[i] = client.Vote.Create().SetState(vote.StateAllowed).SetOwnerID(v).SetDstID(rasID)
+	for i := range voters {
+		voteCreates[i] = client.Vote.Create().SetState(vote.StateAllowed).SetDstID(rasID)
 	}
 
 	votes, err := client.Vote.CreateBulk(voteCreates...).Save(ctx)
@@ -105,10 +105,9 @@ func TestVoteRAS(t *testing.T) {
 	t.Logf("create votes %v", votes)
 
 	for _, v := range votes {
-		u, _ := v.QueryOwner().Only(ctx)
 		s, _ := v.QueryDst().Only(ctx)
 
-		t.Logf("user %v, RAS %v", u, s)
+		t.Logf("RAS %v", s)
 	}
 }
 
