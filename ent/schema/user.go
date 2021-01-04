@@ -28,7 +28,6 @@ func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("oauths", Oauth.Type),
 		edge.To("permissions", Permission.Type),
-		edge.To("votes", Vote.Type),
 		edge.To("sessions", RAS.Type),
 	}
 }

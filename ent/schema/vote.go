@@ -25,7 +25,6 @@ func (Vote) Fields() []ent.Field {
 // Edges of the Vote.
 func (Vote) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("owner", User.Type).Ref("votes").Required().Unique(),
 		edge.From("dst", RAS.Type).Ref("votes").Required().Unique(),
 	}
 }
