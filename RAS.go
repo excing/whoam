@@ -289,6 +289,24 @@ func GetRAS(c *Context) error {
 	return c.Ok(&m[0])
 }
 
+// GetVotes get all vote that specified user
+func GetVotes(c *Context) error {
+	id, err := c.ParamInt("userId")
+
+	if err != nil {
+		c.BadRequest(err.Error())
+	}
+
+	votes, err := client.Vote.Query().
+		Where(vote.HasOwnerWith(user.IDEQ(id))).
+		All(ctx)
+	if err != nil {
+		c.InternalServerError(err.Error())
+	}
+
+	return c.Ok(&votes)
+}
+
 type postVoteForm struct {
 	RASID int
 	State string
