@@ -287,7 +287,7 @@ func GetRAS(c *Context) error {
 	return c.Ok(&m[0])
 }
 
-// GetVotes get all vote that specified user
+// GetVotes get all vote that specified RAS post
 func GetVotes(c *Context) error {
 	return c.NoContent()
 }
