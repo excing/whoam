@@ -289,7 +289,12 @@ func GetRAS(c *Context) error {
 
 // GetVotes get all vote that specified RAS post
 func GetVotes(c *Context) error {
-	return c.NoContent()
+	rasID, err := c.ParamInt("rasId")
+	if err != nil {
+		c.BadRequest(err.Error())
+	}
+
+	return c.Ok(rasID)
 }
 
 type postVoteForm struct {
