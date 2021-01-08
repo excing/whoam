@@ -235,6 +235,7 @@ func NewRAS(c *Context) error {
 		c.InternalServerError(err.Error())
 	}
 
+	// todo 应由服务方提供随机接口
 	users, err := tx.User.Query().
 		Order(schema.Rand()).
 		Limit(10).
@@ -293,6 +294,8 @@ func GetVotes(c *Context) error {
 	if err != nil {
 		c.BadRequest(err.Error())
 	}
+
+	// todo 获取指定的 RAS
 
 	return c.Ok(rasID)
 }
