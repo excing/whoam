@@ -236,6 +236,7 @@ func NewRAS(c *Context) error {
 	}
 
 	// todo 应由服务方提供随机接口
+	// 这里有问题，打分机制如果在RAS中进行，要怎么做？
 	users, err := tx.User.Query().
 		Order(schema.Rand()).
 		Limit(10).
