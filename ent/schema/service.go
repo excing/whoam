@@ -31,5 +31,6 @@ func (Service) Fields() []ent.Field {
 func (Service) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("methods", Method.Type),
+		edge.To("permissions", Method.Type),
 	}
 }

@@ -104,7 +104,49 @@ func PostServiceMethod(c *Context) error {
 	return c.NoContent()
 }
 
+type servicePermissionBody struct {
+	ServiceID   string   `json:"serviceId"`
+	Permissions []string `json:"permissions"`
+}
+
 // PostServicePermission receives the list of permissions required to add the specified service
 func PostServicePermission(c *Context) error {
+	src, err := client.Service.Query().
+		Where(service.IDEQ(c.Param("id"))).
+		Only(ctx)
+
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	var body []*servicePermissionBody
+
+	err = c.ShouldBindJSON(&body)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	srcUpdate := src.Update()
+
+	for _, v := range body {
+		_methods, err := client.Service.
+			Query().
+			Where(service.IDEQ(v.ServiceID)).
+			QueryMethods().
+			Where(method.NameIn(v.Permissions...)).
+			All(ctx)
+
+		if err != nil {
+			return c.BadRequest(err.Error())
+		}
+
+		srcUpdate.AddPermissions(_methods...)
+	}
+
+	_, err = srcUpdate.Save(ctx)
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
 	return c.NoContent()
 }
