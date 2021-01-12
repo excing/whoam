@@ -103,3 +103,8 @@ func PostServiceMethod(c *Context) error {
 
 	return c.NoContent()
 }
+
+// PostServicePermission receives the list of permissions required to add the specified service
+func PostServicePermission(c *Context) error {
+	return c.NoContent()
+}

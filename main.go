@@ -121,6 +121,7 @@ func main() {
 
 	v1.POST("/service", inout(PostService))
 	v1.POST("/service/:id/method", inout(PostServiceMethod))
+	v1.POST("/service/:id/permission", inout(PostServicePermission))
 
 	v1.POST("/article/new", inout(NewArticle))
 	v1.GET("/article/:id", inout(GetArticle))
