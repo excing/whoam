@@ -7,8 +7,6 @@ import (
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/accord"
 	"whoam.xyz/ent/article"
-	"whoam.xyz/ent/schema"
-	"whoam.xyz/ent/user"
 	"whoam.xyz/ent/vote"
 )
 
@@ -207,16 +205,18 @@ func GetAccordArticles(c *Context) error {
 }
 
 type newRASForm struct {
-	Subject     string `schema:"subject,required"`
-	PostURI     string `schema:"post_uri,required"`
-	RedirectURI string `schema:"redirect_uri,required"`
-	Accord      int    `schema:"accord,required"`
+	Subject     string `json:"subject"`
+	PostURI     string `json:"post_uri"`
+	RedirectURI string `json:"redirect_uri"`
+	Accord      int    `json:"accord"`
+	Voters      []int  `json:"voters"`
 }
 
 // NewRAS can create a new RAS
+// The voter list is determined by the creator of RAS
 func NewRAS(c *Context) error {
-	var form newRASForm
-	err := c.ParseForm(&form)
+	var body newRASForm
+	err := c.ShouldBindJSON(&body)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
@@ -225,28 +225,17 @@ func NewRAS(c *Context) error {
 
 	ras, err := tx.RAS.
 		Create().
-		SetSubject(form.Subject).
-		SetPostURI(form.PostURI).
-		SetRedirectURI(form.RedirectURI).
-		SetAccordID(form.Accord).
+		SetSubject(body.Subject).
+		SetPostURI(body.PostURI).
+		SetRedirectURI(body.RedirectURI).
+		SetAccordID(body.Accord).
 		Save(ctx)
 
 	if err != nil {
 		c.InternalServerError(err.Error())
 	}
 
-	// todo 应由服务方提供随机接口
-	// 这里有问题，打分机制如果在RAS中进行，要怎么做？
-	users, err := tx.User.Query().
-		Order(schema.Rand()).
-		Limit(10).
-		Select(user.FieldID).
-		Ints(ctx)
-	if err != nil {
-		c.InternalServerError(err.Error())
-	}
-
-	for _, v := range users {
+	for _, v := range body.Voters {
 		var m []*ent.RAS
 		err = rasBox.ValI(v, &m)
 		if err != nil {
