@@ -254,7 +254,7 @@ func NewRAS(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.NoContent()
+	return c.Ok(ras.ID)
 }
 
 // GetRAS get RAS
@@ -278,14 +278,22 @@ func GetRAS(c *Context) error {
 	return c.Ok(&m[0])
 }
 
-// GetVotes get all vote that specified RAS post
-func GetVotes(c *Context) error {
+// GetRasVotes get all vote that specified RAS
+func GetRasVotes(c *Context) error {
 	rasID, err := c.ParamInt("rasId")
 	if err != nil {
 		c.BadRequest(err.Error())
 	}
 
-	// todo 获取指定的 RAS
+	return c.Ok(rasID)
+}
+
+// GetUserVotes get all vote that specified User
+func GetUserVotes(c *Context) error {
+	rasID, err := c.ParamInt("userId")
+	if err != nil {
+		c.BadRequest(err.Error())
+	}
 
 	return c.Ok(rasID)
 }

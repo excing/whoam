@@ -132,9 +132,10 @@ func main() {
 	v1.GET("/accord/:id/articles", inout(GetAccordArticles))
 
 	v1.POST("/ras/new", inout(NewRAS))
-	v1.GET("/ras/:userId", inout(GetRAS))
+	v1.GET("/ras/user/:userId", inout(GetRAS))
 	v1.POST("/ras/vote", inout(VoteRAS))
-	// v1.GET("/ras/vote/:postURI", inout(GetVotes))
+	v1.GET("/votes/rasId/:rasId", inout(GetRasVotes))
+	v1.GET("/votes/user/:userId", inout(GetUserVotes))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }
