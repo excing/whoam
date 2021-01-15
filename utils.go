@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"math/rand"
 	"net"
 	"regexp"
@@ -9,6 +9,8 @@ import (
 	"unsafe"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
+	"whoam.xyz/ent"
 )
 
 // ExternalIP 获取 IP
@@ -187,4 +189,28 @@ func FilterJWTToken(tokenString string, signingKey []byte) (*StandardClaims, err
 	}
 
 	return nil, errors.New("Token claims isn't jwt.StandardClaims")
+}
+
+// WithTx best Practices, reusable function that runs callbacks in a transaction
+func WithTx(ctx context.Context, client *ent.Client, fn func(tx *ent.Tx) error) error {
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if v := recover(); v != nil {
+			tx.Rollback()
+			panic(v)
+		}
+	}()
+	if err := fn(tx); err != nil {
+		if rerr := tx.Rollback(); rerr != nil {
+			err = errors.Wrapf(err, "rolling back transaction: %v", rerr)
+		}
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "committing transaction: %v", err)
+	}
+	return nil
 }
