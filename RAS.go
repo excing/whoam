@@ -316,6 +316,16 @@ func GetUserVotes(c *Context) error {
 	return c.Ok(rasID)
 }
 
+// GetPostVotes get all vote that specified Post
+func GetPostVotes(c *Context) error {
+	rasID, err := c.ParamInt("postUri")
+	if err != nil {
+		c.BadRequest(err.Error())
+	}
+
+	return c.Ok(rasID)
+}
+
 type postVoteForm struct {
 	RASID int
 	State string
