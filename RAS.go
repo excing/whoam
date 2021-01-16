@@ -1,12 +1,15 @@
 package main
 
 import (
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/accord"
 	"whoam.xyz/ent/article"
+	"whoam.xyz/ent/ras"
 	"whoam.xyz/ent/vote"
 )
 
@@ -212,6 +215,12 @@ type newRASForm struct {
 	Voters      []int  `json:"voters"`
 }
 
+type rasVote struct {
+	UserID int
+	State  string
+	Note   string
+}
+
 // NewRAS can create a new RAS
 // The voter list is determined by the creator of RAS
 func NewRAS(c *Context) error {
@@ -221,40 +230,49 @@ func NewRAS(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	tx, err := client.Tx(ctx)
-
-	ras, err := tx.RAS.
-		Create().
-		SetSubject(body.Subject).
-		SetPostURI(body.PostURI).
-		SetRedirectURI(body.RedirectURI).
-		SetAccordID(body.Accord).
-		Save(ctx)
-
-	if err != nil {
-		c.InternalServerError(err.Error())
+	if len(body.Voters) != 10 {
+		return c.BadRequest("Please fix the number of voters to 10")
 	}
 
-	for _, v := range body.Voters {
-		var m []*ent.RAS
-		err = rasBox.ValI(v, &m)
+	err = WithTx(ctx, client, func(tx *ent.Tx) error {
+		ras, err := tx.RAS.
+			Create().
+			SetSubject(body.Subject).
+			SetPostURI(body.PostURI).
+			SetRedirectURI(body.RedirectURI).
+			SetAccordID(body.Accord).
+			Save(ctx)
 		if err != nil {
-			return c.InternalServerError(err.Error())
+			return err
 		}
 
-		m = append(m, ras)
-		err = rasBox.SetValI(v, &m)
-		if err != nil {
-			return c.InternalServerError(err.Error())
-		}
-	}
+		// Issues: Voters are not stored, if the service restarts, there is a loss
+		var votes []*rasVote
+		for _, v := range body.Voters {
+			votes = append(votes, &rasVote{UserID: v})
+			var _rass []int
+			err = rasBox.ValI(v, &_rass)
+			if err != nil {
+				return err
+			}
 
-	err = tx.Commit()
+			_rass = append(_rass, ras.ID)
+			err = rasBox.SetValI(v, &_rass)
+			if err != nil {
+				return err
+			}
+		}
+		err = rasBox.Val(strconv.Itoa(ras.ID), &votes)
+		return err
+	})
+
 	if err != nil {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.Ok(ras.ID)
+	// `RAS.id` will be sent with the voting result when calling back `RedirectURI`
+	// A `post` may produce multiple votes, when the voting result is abstention
+	return c.NoContent()
 }
 
 // GetRAS get RAS
@@ -319,24 +337,127 @@ func VoteRAS(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	m := make(map[int]*ent.RAS)
-	err = rasBox.ValI(userID, &m)
+	var _votes []*rasVote
+	err = rasBox.Val(strconv.Itoa(form.RASID), &_votes)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
-	ras, ok := m[form.RASID]
-	if !ok {
-		return c.BadRequest(err.Error())
+	// Has the vote been completed
+	completed := true
+	for _, _vote := range _votes {
+		if _vote.UserID == userID {
+			if vote.StateValidator(vote.State(_vote.State)) != nil {
+				return c.Conflict("Voted on this post")
+			}
+			_vote.State = form.State
+			_vote.Note = form.Note
+		} else if vote.StateValidator(vote.State(_vote.State)) != nil {
+			completed = false
+		}
 	}
 
-	_, err = client.Vote.Create().
-		SetDstID(ras.ID).
-		SetState(vote.State(form.State)).
-		SetSubject(form.Note).
-		Save(ctx)
+	if !completed {
+		// Refresh voting list
+		err = rasBox.SetVal(strconv.Itoa(form.RASID), &_votes)
+		if err != nil {
+			return c.InternalServerError(err.Error())
+		}
+
+		return c.NoContent()
+	}
+
+	// If the voting is completed, process and save the voting result
+
+	err = WithTx(ctx, client, func(tx *ent.Tx) error {
+		voteCreates := make([]*ent.VoteCreate, len(_votes))
+
+		_subject := ""
+		allowedCount := 0
+		rejectedCount := 0
+		abstainedCount := 0
+		for i, _vote := range _votes {
+			_subject += _vote.Note + ";"
+			state := vote.State(_vote.State)
+			switch state {
+			case vote.StateAllowed:
+				allowedCount++
+			case vote.StateRejected:
+				rejectedCount++
+			case vote.StateAbstained:
+				abstainedCount++
+			}
+
+			voteCreates[i] = tx.Vote.Create().SetDstID(form.RASID).SetState(state).SetSubject(form.Note)
+		}
+
+		_state := ras.StateAbstained
+		if 4 <= allowedCount && 4 <= rejectedCount {
+			if allowedCount == rejectedCount || allowedCount <= rejectedCount {
+				_state = ras.StateAllowed
+			} else {
+				_state = ras.StateRejected
+			}
+		} else if 4 <= allowedCount {
+			_state = ras.StateAllowed
+		} else if 4 <= rejectedCount {
+			_state = ras.StateRejected
+		} else {
+			_state = ras.StateAbstained
+		}
+
+		_, err := tx.RAS.Update().Where(ras.IDEQ(form.RASID)).SetState(_state).SetSubject(_subject).Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		rasRedirectURI, err := tx.RAS.Query().Where(ras.IDEQ(form.RASID)).Select(ras.FieldRedirectURI).String(ctx)
+		if err != nil {
+			return err
+		}
+
+		_resp := url.Values{
+			"state":   {_state.String()},
+			"subject": {_subject},
+			"rasId":   {strconv.Itoa(form.RASID)},
+		}
+		_, err = http.PostForm(rasRedirectURI, _resp)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Vote.CreateBulk(voteCreates...).Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		ok := rasBox.DelString(strconv.Itoa(form.RASID))
+		print("Remove RAS(", form.RASID, "): ", ok)
+
+		// todo Unhandled cache exception
+		for _, _vote := range _votes {
+			var _ids []int
+			rasBox.ValI(_vote.UserID, &_ids)
+			if 1 == len(_ids) {
+				rasBox.DelInt(int64(_vote.UserID))
+			} else {
+				news := make([]int, len(_ids)-1)
+				for i, _id := range _ids {
+					if form.RASID == _id {
+						i--
+						continue
+					}
+					news[i] = _id
+				}
+				rasBox.SetValI(_vote.UserID, &news)
+			}
+		}
+
+		return err
+	})
+
 	if err != nil {
-		c.InternalServerError(err.Error())
+		return c.InternalServerError(err.Error())
 	}
 
 	return c.NoContent()
