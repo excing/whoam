@@ -135,7 +135,6 @@ func main() {
 	v1.GET("/ras/user/:userId", inout(GetRAS))
 	v1.POST("/ras/vote", inout(VoteRAS))
 	v1.GET("/votes/rasId/:rasId", inout(GetRasVotes))
-	v1.GET("/votes/user/:userId", inout(GetUserVotes))
 	v1.GET("/votes/post/:postUri", inout(GetPostVotes))
 
 	router.Run(":" + strconv.Itoa(config.Port))

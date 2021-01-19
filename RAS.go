@@ -302,28 +302,32 @@ func GetRasVotes(c *Context) error {
 	if err != nil {
 		c.BadRequest(err.Error())
 	}
-
-	return c.Ok(rasID)
-}
-
-// GetUserVotes get all vote that specified User
-func GetUserVotes(c *Context) error {
-	rasID, err := c.ParamInt("userId")
+	votes, err := client.Vote.Query().Where(vote.HasDstWith(ras.IDEQ(rasID))).All(ctx)
 	if err != nil {
 		c.BadRequest(err.Error())
 	}
 
-	return c.Ok(rasID)
+	return c.Ok(votes)
 }
 
 // GetPostVotes get all vote that specified Post
 func GetPostVotes(c *Context) error {
-	rasID, err := c.ParamInt("postUri")
+	postURI := c.Param("postUri")
+
+	rass, err := client.RAS.Query().Where(ras.PostURIEQ(postURI)).All(ctx)
 	if err != nil {
 		c.BadRequest(err.Error())
 	}
 
-	return c.Ok(rasID)
+	for _, _ras := range rass {
+		votes, err := _ras.QueryVotes().All(ctx)
+		if err != nil {
+			c.BadRequest(err.Error())
+		}
+		_ras.Edges.Votes = votes
+	}
+
+	return c.Ok(rass)
 }
 
 type postVoteForm struct {
