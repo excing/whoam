@@ -319,14 +319,6 @@ func GetPostVotes(c *Context) error {
 		c.BadRequest(err.Error())
 	}
 
-	for _, _ras := range rass {
-		votes, err := _ras.QueryVotes().All(ctx)
-		if err != nil {
-			c.BadRequest(err.Error())
-		}
-		_ras.Edges.Votes = votes
-	}
-
 	return c.Ok(rass)
 }
 

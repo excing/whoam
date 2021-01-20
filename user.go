@@ -183,12 +183,11 @@ func PageUserLogin(c *Context) error {
 
 // PageUserOAuth requesting user's whoam identity
 // GitHub: https://github.com/login?client_id=bfe378e98cde9624c98c&return_to=/login/oauth/authorize?client_id=bfe378e98cde9624c98c&redirect_uri=https://www.iconfont.cn/api/login/github/callback&state=123123sadh1as12
+// http://localhost:18030/user/login?state=aufbl1e442h&clientId=example.whoam.xyz&redirect_uri=http://127.0.0.1:5500/example/redirect.html&return_to=http://127.0.0.1:5500/example/index.html
 func PageUserOAuth(c *Context) error {
 	if _, ok := c.GetQuery("clientId"); !ok {
 		return c.BadRequest("clientId is empty")
 	}
-
-	c.Writer.Header().Set("Cache-control", "private")
 
 	if accessToken, err := c.Cookie("accessToken"); err != nil || !UserAuthorize(accessToken) {
 		returnTo, ok := c.GetQuery("return_to")
