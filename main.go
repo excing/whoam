@@ -15,10 +15,9 @@ import (
 
 // Config 配置文件信息
 type Config struct {
-	Port   int    `flag:"Authorization server port"`
-	Domain string `flag:"Authorization server domain"`
-	Db     string `flag:"Authorization database file path"`
-	Debug  bool   `flag:"Is Debug mode"`
+	Port  int    `flag:"Authorization server port"`
+	Db    string `flag:"Authorization database file path"`
+	Debug bool   `flag:"Is Debug mode"`
 }
 
 const (
@@ -36,13 +35,7 @@ var ctx context.Context
 var client *ent.Client
 
 func init() {
-	port := 8030
-	ip, err := ExternalIP()
-	if err != nil {
-		panic(err)
-	}
-
-	config = Config{port, ip + ":" + strconv.Itoa(port), "test.db", false}
+	config = Config{Port: 8030, Db: "test.db", Debug: false}
 
 	goflag.Var(&config)
 }
@@ -54,14 +47,16 @@ func main() {
 
 	var err error
 
+	opts := []ent.Option{}
 	if config.Debug {
-		opts := []ent.Option{
-			ent.Debug(),
-		}
+		opts = append(opts, ent.Debug())
+	}
+	if config.Db == "" {
 		client, err = ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1", opts...)
 	} else {
-		client, err = ent.Open("sqlite3", "file:"+config.Db+"?_fk=1")
+		client, err = ent.Open("sqlite3", "file:"+config.Db+"?_fk=1", opts...)
 	}
+
 	if err != nil {
 		panic("failed to open database: " + err.Error())
 	}
