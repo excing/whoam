@@ -4,6 +4,7 @@ import (
 	"github.com/facebook/ent"
 	"github.com/facebook/ent/schema/edge"
 	"github.com/facebook/ent/schema/field"
+	"github.com/facebook/ent/schema/index"
 )
 
 // Method holds the schema definition for the Method entity.
@@ -25,5 +26,12 @@ func (Method) Fields() []ent.Field {
 func (Method) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("owner", Service.Type).Ref("methods").Required().Unique(),
+	}
+}
+
+// Indexs of the Method.
+func (Method) Indexs() []ent.Index {
+	return []ent.Index{
+		index.Fields("name", "scope").Unique(),
 	}
 }

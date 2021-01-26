@@ -67,7 +67,6 @@ func main() {
 		panic("failed to create schema: " + err.Error())
 	}
 
-	InitRAS()
 	InitUser()
 	InitService()
 
@@ -117,20 +116,6 @@ func main() {
 	v1.POST("/service", inout(PostService))
 	v1.POST("/service/:id/method", inout(PostServiceMethod))
 	v1.POST("/service/:id/permission", inout(PostServicePermission))
-
-	v1.POST("/article/new", inout(NewArticle))
-	v1.GET("/article/:id", inout(GetArticle))
-	v1.GET("/articles", inout(GetArticles))
-	v1.POST("/accord/new", inout(NewAccord))
-	v1.GET("/accord/:id", inout(GetAccord))
-	v1.GET("/accords", inout(GetAccords))
-	v1.GET("/accord/:id/articles", inout(GetAccordArticles))
-
-	v1.POST("/ras/new", inout(NewRAS))
-	v1.GET("/ras/user/:userId", inout(GetRAS))
-	v1.POST("/ras/vote", inout(VoteRAS))
-	v1.GET("/votes/rasId/:rasId", inout(GetRasVotes))
-	v1.GET("/votes/post/:postUri", inout(GetPostVotes))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }
