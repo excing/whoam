@@ -27,21 +27,13 @@
       const email = document.getElementById('email').value
       const state = Math.random().toString(36).slice(2)
 
-      const form = {
-        email: email,
-        state: state,
-      }
-
-      // js object value of URLSearchParams
-      var urlForm = new URLSearchParams()
-      for (name in form) {
-        urlForm.append(name, form[name])
-      }
-
       axios({
         method: 'post',
         url: '/api/v1/user/main/code',
-        data: urlForm,
+        data: {
+          email: email,
+          state: state,
+        },
       })
         .then(function (response) {
           loginToken = response.data
@@ -58,23 +50,15 @@
       const token = loginToken
       const code = document.getElementById('code').value
 
-      const form = {
-        email: email,
-        state: state,
-        token: token,
-        code: code,
-      }
-
-      // js object value of URLSearchParams
-      var urlForm = new URLSearchParams()
-      for (name in form) {
-        urlForm.append(name, form[name])
-      }
-
       axios({
         method: 'post',
         url: '/api/v1/user/main/auth',
-        data: urlForm,
+        data: {
+          email: email,
+          state: state,
+          token: token,
+          code: code,
+        },
       })
         .then(function (response) {
           var user = response.data

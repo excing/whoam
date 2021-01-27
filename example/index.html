@@ -54,7 +54,7 @@
       axios({
         method: 'post',
         url: 'http://localhost:18030/api/v1/service',
-        data: urlForm,
+        data: form,
       })
         .then(function (response) {
           alert("Register successed")
@@ -65,7 +65,7 @@
     }
 
     function addServiceMethod() {
-      axios.post('http://localhost:18030/api/v1/service/' + clientId + "/method", data = [{
+      axios.post('http://localhost:18030/api/v1/service/method?id=' + clientId, data = [{
         name: "upload",
         route: '/file/upload',
         subject: 'upload public file',
@@ -85,7 +85,7 @@
     }
 
     function addServicePermission() {
-      axios.post('http://localhost:18030/api/v1/service/' + clientId + "/permission", data = [{
+      axios.post('http://localhost:18030/api/v1/service/permission?id=' + clientId, data = [{
         serviceId: "whoam.xyz",
         permissions: [
           "PostService",

@@ -32,22 +32,15 @@
   </div>
   <script>
     function allowAuth() {
-      const form = {
-        mainToken: localStorage.getItem('mainToken'),
-        clientId: clientId,
-        state: state,
-      }
-
-      // js object value of URLSearchParams
-      var urlForm = new URLSearchParams()
-      for (name in form) {
-        urlForm.append(name, form[name])
-      }
 
       axios({
         method: 'post',
         url: '/api/v1/user/oauth/auth',
-        data: urlForm,
+        data: {
+          mainToken: localStorage.getItem('mainToken'),
+          clientId: clientId,
+          state: state,
+        },
       })
         .then(function (response) {
           const code = response.data

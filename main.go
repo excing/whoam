@@ -100,24 +100,24 @@ func main() {
 	})
 	router.StaticFS("/favicon_io", packr.NewBox("./favicon_io"))
 
-	router.GET("/user/login", inout(PageUserLogin))
-	router.GET("/user/oauth", inout(PageUserOAuth))
+	router.GET("/user/login", handle(PageUserLogin))
+	router.GET("/user/oauth", handle(PageUserOAuth))
 
 	v1 := router.Group("/api/v1")
 
-	v1.POST("/user/main/code", inout(PostMainCode))
-	v1.POST("/user/main/auth", inout(PostUserAuth))
+	v1.POST("/user/main/code", handle(PostMainCode))
+	v1.POST("/user/main/auth", handle(PostUserAuth))
 
-	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
-	v1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
+	v1.POST("/user/oauth/auth", handle(PostUserOAuthAuth))
+	v1.POST("/user/oauth/refresh", handle(PostUserOAuthRefresh))
 
-	v1.GET("/user", inout(GetUser))
-	v1.GET("/user/oauth/token", inout(GetOAuthCode))
-	v1.GET("/user/oauth/state", inout(GetOAuthState))
+	v1.GET("/user", handle(GetUser))
+	v1.GET("/user/oauth/token", handle(GetOAuthCode))
+	v1.GET("/user/oauth/state", handle(GetOAuthState))
 
-	v1.POST("/service", inout(PostService))
-	v1.POST("/service/:id/method", inout(PostServiceMethod))
-	v1.POST("/service/:id/permission", inout(PostServicePermission))
+	v1.POST("/service", handle(PostService))
+	v1.POST("/service/method", handle(PostServiceMethod))
+	v1.POST("/service/permission", handle(PostServicePermission))
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }

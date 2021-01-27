@@ -58,22 +58,16 @@ func UserAuthorize(accessToken string) bool {
 }
 
 type userVerificationForm struct {
-	Email string `schema:"email,required"`
-	State string `schema:"state,required" note:"This parameter should be consistent with the state in /user/main/login"`
-	Code  string `schema:"code,required"`
-	Token string `schema:"token,required"`
-}
-
-type userVerificationResp struct {
-	UserID      int    `json:"userId"`
-	AccessToken string `json:"accessToken"`
-	MainToken   string `json:"mainToken"`
+	Email string `json:"email,required"`
+	State string `json:"state,required" note:"This parameter should be consistent with the state in /user/main/login"`
+	Code  string `json:"code,required"`
+	Token string `json:"token,required"`
 }
 
 // PostUserAuth 用户登录授权验证
 func PostUserAuth(c *Context) error {
 	var dst userVerificationForm
-	err := c.ParseForm(&dst)
+	err := c.ShouldBindJSON(&dst)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
@@ -139,14 +133,14 @@ func PostUserAuth(c *Context) error {
 }
 
 type userLoginForm struct {
-	Email string `schema:"email,required"`
-	State string `schema:"state,required" note:"random number"`
+	Email string `json:"email,required"`
+	State string `json:"state,required" note:"random number"`
 }
 
 // PostMainCode 用户登录
 func PostMainCode(c *Context) error {
 	var form userLoginForm
-	err := c.ParseForm(&form)
+	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
@@ -271,17 +265,16 @@ func GetUser(c *Context) error {
 }
 
 type oauthAuthForm struct {
-	UserID    int    `schema:"-"`
-	MainToken string `schema:"mainToken,required"`
-	ClientID  string `schema:"clientId,required"`
-	State     string `schema:"state,required"`
+	UserID    int    `json:"-"`
+	MainToken string `json:"mainToken,required"`
+	ClientID  string `json:"clientId,required"`
+	State     string `json:"state,required"`
 }
 
 // PostUserOAuthAuth whoam user authorized the request(/user/oauth/auth request)
 func PostUserOAuthAuth(c *Context) error {
 	var form oauthAuthForm
-	err := c.ParseForm(&form)
-
+	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
@@ -363,7 +356,7 @@ type oauthRefreshForm struct {
 
 // PostUserOAuthRefresh refresh user access token
 func PostUserOAuthRefresh(c *Context) error {
-	refreshToken, err := c.FormValue("refreshToken")
+	refreshToken, err := c.GetFormString("refreshToken")
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}

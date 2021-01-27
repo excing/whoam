@@ -86,17 +86,17 @@ func InitService() {
 }
 
 type postServiceForm struct {
-	ServiceID   string `schema:"serviceId,required"`
-	ServiceName string `schema:"serviceName,required"`
+	ServiceID   string `json:"serviceId,required"`
+	ServiceName string `json:"serviceName,required"`
 	ServiceDesc string
-	Domain      string `schema:"domain,required"`
-	CloneURI    string `schema:"cloneUri,required"`
+	Domain      string `json:"domain,required"`
+	CloneURI    string `json:"cloneUri,required"`
 }
 
 // PostService 提交服务注册
 func PostService(c *Context) error {
 	var form postServiceForm
-	err := c.ParseForm(&form)
+	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
@@ -117,16 +117,21 @@ func PostService(c *Context) error {
 }
 
 type serviceMethodBody struct {
-	Name    string       `json:"name"`
-	Route   string       `json:"route"`
-	Subject string       `json:"subject"`
-	Scope   method.Scope `json:"scope"`
+	Name    string       `json:"name,required"`
+	Route   string       `json:"route,required"`
+	Subject string       `json:"subject,required"`
+	Scope   method.Scope `json:"scope,required"`
 }
 
 // PostServiceMethod receive service method submission
 func PostServiceMethod(c *Context) error {
+	id, err := c.GetQueryString("id")
+	if id == "" {
+		return c.BadRequest(err.Error())
+	}
+
 	service, err := client.Service.Query().
-		Where(service.IDEQ(c.Param("id"))).
+		Where(service.IDEQ(id)).
 		Only(ctx)
 
 	if err != nil {
@@ -168,14 +173,19 @@ func PostServiceMethod(c *Context) error {
 }
 
 type servicePermissionBody struct {
-	ServiceID   string   `json:"serviceId"`
-	Permissions []string `json:"permissions"`
+	ServiceID   string   `json:"serviceId,required"`
+	Permissions []string `json:"permissions,required"`
 }
 
 // PostServicePermission receives the list of permissions required to add the specified service
 func PostServicePermission(c *Context) error {
+	id, err := c.GetQueryString("id")
+	if id == "" {
+		return c.BadRequest(err.Error())
+	}
+
 	src, err := client.Service.Query().
-		Where(service.IDEQ(c.Param("id"))).
+		Where(service.IDEQ(id)).
 		Only(ctx)
 
 	if err != nil {

@@ -5,26 +5,70 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
-	"github.com/gorilla/schema"
+	"github.com/pkg/errors"
 )
 
-// Context http response content
+// Context is http request and response content
 type Context struct {
 	*gin.Context
 }
 
-var decoder = schema.NewDecoder()
-
-func inout(handle func(p *Context) error) gin.HandlerFunc {
+func handle(fn func(p *Context) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		handle(&Context{c})
+		fn(&Context{c})
 	}
+}
+
+// QueryInt returns the keyed url query int value if it exists,
+// otherwise it returns 0 `(0)`.
+// It is shortcut for `c.Request.URL.Query().Get(key)`
+//     GET /path?id=1234&name=Manu&value=
+// 	   c.Query("id") == 1234
+// 	   c.Query("name") == 0
+// 	   c.Query("value") == 0
+// 	   c.Query("wtf") == 0
+func (p *Context) QueryInt(key string) int {
+	i, _ := p.GetQueryInt(key)
+	return i
+}
+
+// GetQueryInt returns a slice of ints for a given query key, plus
+// a error value whether at least one value exists for the given key.
+// It is shortcut for `c.Request.URL.Query().Get(key)`
+//     GET /path?id=1234&name=Manu&value=
+// 	   c.Query("id") == 1234, nil
+// 	   c.Query("name") == 0, errors.New("the wrong type of name")
+// 	   c.Query("value") == 0, errors.New("the wrong type of 'value'")
+// 	   c.Query("wtf") == 0, errors.New("Missing 'wtf' parameter")
+func (p *Context) GetQueryInt(key string) (int, error) {
+	if values, ok := p.GetQueryArray(key); ok {
+		if i, err := strconv.Atoi(values[0]); err == nil {
+			return i, nil
+		}
+		return 0, errors.Errorf("the wrong type of '%v'", key)
+	}
+	return 0, errors.Errorf("Missing '%v' parameter", key)
+}
+
+// GetQueryString is the same as GetQuery, except that the return value is changed to `error`
+func (p *Context) GetQueryString(key string) (string, error) {
+	if values, ok := p.GetQueryArray(key); ok {
+		return values[0], nil
+	}
+	return "", errors.Errorf("Missing '%v' parameter", key)
+}
+
+// GetFormString is the same as GetPostForm, except that the return value is changed to `error`
+func (p *Context) GetFormString(key string) (string, error) {
+	if values, ok := p.GetPostFormArray(key); ok {
+		return values[0], nil
+	}
+	return "", errors.Errorf("The form is missing the '%v' parameter", key)
 }
 
 // Render writes the response headers and calls render.Render to render data.
@@ -38,71 +82,6 @@ func (p *Context) Render(code int, r render.Render) error {
 	}
 
 	return r.Render(p.Writer)
-}
-
-// ParamInt return the int value of the specified param,
-// return error if the value is empty or type error
-func (p *Context) ParamInt(key string) (int, error) {
-	val, ok := p.Params.Get(key)
-	if !ok {
-		return 0, errors.New(key + " is empty")
-	}
-
-	i, err := strconv.Atoi(val)
-	if err != nil {
-		return 0, errors.New("Type error: " + key + " should be `int` type")
-	}
-
-	return i, nil
-}
-
-// QueryInt return the keyed url query value(int),
-// return error if the value is empty or type error
-func (p *Context) QueryInt(key string) (int, bool, error) {
-	val, ok := p.GetQuery(key)
-	if !ok {
-		return 0, false, errors.New(key + " isn't exist")
-	}
-
-	i, err := strconv.Atoi(val)
-	if err != nil {
-		return 0, true, errors.New("Type error: " + key + " should be `int` type")
-	}
-
-	return i, true, nil
-}
-
-// FormValue returns the form value of the specified key,
-// return error if the value does not exist or is empty
-func (p *Context) FormValue(key string) (string, error) {
-	if values, ok := p.GetPostFormArray(key); ok && "" != values[0] {
-		return values[0], nil
-	}
-	return "", errors.New(key + " is empty")
-}
-
-// FormArray returns the form value array of the specified key,
-// return error if the value does not exist or is empty
-func (p *Context) FormArray(key string) ([]string, error) {
-	if values, ok := p.GetPostFormArray(key); ok && 0 != len(values) {
-		return values, nil
-	}
-	return nil, errors.New(key + " is empty")
-}
-
-// ParseForm writes form content to dst,
-// return error if the content does not exist or is empty
-func (p *Context) ParseForm(dst interface{}) error {
-	err := p.Request.ParseForm()
-	if err != nil {
-		return err
-	}
-
-	err = decoder.Decode(dst, p.Request.PostForm)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // MovedPermanently 301 MovedPermanently

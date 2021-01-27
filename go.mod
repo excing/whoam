@@ -9,7 +9,6 @@ require (
 	github.com/facebook/ent v0.5.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/gobuffalo/packr/v2 v2.8.1
-	github.com/gorilla/schema v1.2.0
 	github.com/mattn/go-sqlite3 v1.14.5
 	github.com/pkg/errors v0.9.1
 	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f // indirect
