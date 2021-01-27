@@ -32,6 +32,6 @@ func (Method) Edges() []ent.Edge {
 // Indexs of the Method.
 func (Method) Indexs() []ent.Index {
 	return []ent.Index{
-		index.Fields("name", "scope").Unique(),
+		index.Fields("name").Edges("owner").Unique(),
 	}
 }
