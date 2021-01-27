@@ -7,7 +7,10 @@ import (
 	"text/template"
 	"time"
 
+	"whoam.xyz/ent"
+	"whoam.xyz/ent/method"
 	"whoam.xyz/ent/oauth"
+	"whoam.xyz/ent/service"
 	"whoam.xyz/ent/user"
 )
 
@@ -125,7 +128,14 @@ func PostUserAuth(c *Context) error {
 
 	userVerificaBox.DelString(dst.Token)
 
-	return c.Ok(&userVerificationResp{user.ID, accessToken, auth.MainToken})
+	return c.Ok(
+		struct {
+			AccessToken string `json:"accessToken"`
+			MainToken   string `json:"mainToken"`
+		}{
+			AccessToken: accessToken,
+			MainToken:   auth.MainToken,
+		})
 }
 
 type userLoginForm struct {
@@ -185,7 +195,8 @@ func PageUserLogin(c *Context) error {
 // GitHub: https://github.com/login?client_id=bfe378e98cde9624c98c&return_to=/login/oauth/authorize?client_id=bfe378e98cde9624c98c&redirect_uri=https://www.iconfont.cn/api/login/github/callback&state=123123sadh1as12
 // http://localhost:18030/user/login?state=aufbl1e442h&clientId=example.whoam.xyz&redirect_uri=http://127.0.0.1:5500/example/redirect.html&return_to=http://127.0.0.1:5500/example/index.html
 func PageUserOAuth(c *Context) error {
-	if _, ok := c.GetQuery("clientId"); !ok {
+	clientID, ok := c.GetQuery("clientId")
+	if !ok {
 		return c.BadRequest("clientId is empty")
 	}
 
@@ -199,7 +210,64 @@ func PageUserOAuth(c *Context) error {
 		return c.MovedPermanently("/user/login?" + url.RawQuery)
 	}
 
-	return c.OkHTML(tlpUserOAuth, nil)
+	_service, err := client.Service.Query().Where(service.IDEQ(clientID)).First(ctx)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	_permissions, err := _service.QueryPermissions().Where(method.ScopeEQ(method.ScopePrivate)).All(ctx)
+	if err != nil {
+		return c.BadRequest(err.Error())
+	}
+
+	_result := make(map[string][]*ent.Method)
+	for _, _permission := range _permissions {
+		_service, err := _permission.QueryOwner().First(ctx)
+		if err != nil {
+			return c.InternalServerError(err.Error())
+		}
+
+		_val, ok := _result[_service.Name]
+		_val = append(_val, _permission)
+		if !ok {
+			_result[_service.Name] = _val
+		}
+	}
+
+	return c.OkHTML(tlpUserOAuth, &_result)
+}
+
+// GetUser is used to get the basic information of the user, if authenticated through OAuth
+func GetUser(c *Context) error {
+	accessToken, _ := c.Cookie("accessToken")
+	if "" == accessToken {
+		accessToken = c.GetHeader("Authorization")
+		if "" == accessToken {
+			return c.Unauthorized("Unauthorized")
+		}
+	} else if accessToken != c.GetHeader("Authorization") {
+		// 冲突
+		return c.Conflict("Cookie's accessToken and Header's Authorization value are inconsistent")
+	}
+
+	_claims, err := FilterJWTToken(accessToken, signingKey)
+	if err != nil {
+		return c.Unauthorized(err.Error())
+	}
+
+	_user, err := client.User.Query().Where(user.IDEQ(int(_claims.OtherID))).Only(ctx)
+	if err != nil {
+		return c.InternalServerError(err.Error())
+	}
+
+	return c.Ok(
+		struct {
+			ID    int    `json:"id"`
+			Email string `json:"email"`
+		}{
+			ID:    _user.ID,
+			Email: _user.Email,
+		})
 }
 
 type oauthAuthForm struct {
@@ -268,7 +336,14 @@ func GetOAuthCode(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	return c.Ok(&userVerificationResp{oauthUser.UserID, accessToken, auth.MainToken})
+	return c.Ok(
+		struct {
+			AccessToken string `json:"accessToken"`
+			MainToken   string `json:"mainToken"`
+		}{
+			AccessToken: accessToken,
+			MainToken:   auth.MainToken,
+		})
 }
 
 // GetOAuthState Get user authorization status

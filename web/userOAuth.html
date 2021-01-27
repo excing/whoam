@@ -16,8 +16,16 @@
 
 <body class="black">
   <div id="auth">
-    <div>请求授权</div>
     <div id="clientId"></div>
+    <div>请求授权，申请权限列表：
+      {{range $service, $methods := .}}
+      <div>{{ $service }}
+        {{ range $i, $method := $methods}}
+        <div><input type="checkbox" /> {{ $method.Subject }}</div>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
     <form>
       <input onclick="allowAuth()" type="button" value="允许授权" />
     </form>

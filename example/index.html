@@ -20,7 +20,10 @@
   <button id="logout" onclick="onLogout()" hidden>退出</button>
   <div style="margin-top: 20px;">
     <button onclick="onRegisterService()">注册 example 服务</button>
+  </div>
+  <div style="margin-top: 5px;">
     <button onclick="addServiceMethod()">添加 example 方法</button>
+    <button onclick="addServicePermission()">添加 example 权限</button>
   </div>
   <div style="margin-top: 20px;">
     <a href="/example/accord.html">查看约定</button>
@@ -81,6 +84,23 @@
         });
     }
 
+    function addServicePermission() {
+      axios.post('http://localhost:18030/api/v1/service/' + clientId + "/permission", data = [{
+        serviceId: "whoam.xyz",
+        permissions: [
+          "PostService",
+          "GetUser",
+          "GetOAuthState",
+        ],
+      },])
+        .then(function (response) {
+          alert("Register successed")
+        })
+        .catch(function (error) {
+          alert("Register failured: " + error)
+        });
+    }
+
     var whoam = "http://localhost:18030/user/oauth"
     var state = Math.random().toString(36).slice(2)
     var clientId = "example.whoam.xyz"
@@ -90,9 +110,9 @@
     document.getElementById('loginWithWhoam').href = href
 
     if (undefined != Cookies.get('accessToken')) {
-      axios.get('http://localhost:18030/api/v1/user/oauth/state?client_id=' + clientId, config = { headers: { 'Authorization': Cookies.get('accessToken') } })
+      axios.get('http://localhost:18030/api/v1/user', config = { headers: { 'Authorization': Cookies.get('accessToken') } })
         .then(function (response) {
-          document.getElementById('user').innerText = '已登录'
+          document.getElementById('user').innerText = response.data.email + '已登录'
           document.getElementById('loginWithWhoam').hidden = true
           document.getElementById('logout').hidden = false
         })

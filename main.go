@@ -109,9 +109,11 @@ func main() {
 	v1.POST("/user/main/auth", inout(PostUserAuth))
 
 	v1.POST("/user/oauth/auth", inout(PostUserOAuthAuth))
+	v1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
+
+	v1.GET("/user", inout(GetUser))
 	v1.GET("/user/oauth/token", inout(GetOAuthCode))
 	v1.GET("/user/oauth/state", inout(GetOAuthState))
-	v1.POST("/user/oauth/refresh", inout(PostUserOAuthRefresh))
 
 	v1.POST("/service", inout(PostService))
 	v1.POST("/service/:id/method", inout(PostServiceMethod))
