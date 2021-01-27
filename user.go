@@ -264,16 +264,13 @@ func GetUser(c *Context) error {
 		})
 }
 
-type oauthAuthForm struct {
-	UserID    int    `json:"-"`
-	MainToken string `json:"mainToken,required"`
-	ClientID  string `json:"clientId,required"`
-	State     string `json:"state,required"`
-}
-
 // PostUserOAuthAuth whoam user authorized the request(/user/oauth/auth request)
 func PostUserOAuthAuth(c *Context) error {
-	var form oauthAuthForm
+	var form struct {
+		MainToken string `json:"mainToken,required"`
+		ClientID  string `json:"clientId,required"`
+		State     string `json:"state,required"`
+	}
 	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		return c.BadRequest(err.Error())
@@ -284,7 +281,7 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.Unauthorized("Invalid token, please login again")
 	}
 
-	oauthUser := oauthAuthForm{
+	oauthUser := userOAuth{
 		UserID:   owner.ID,
 		ClientID: form.ClientID,
 	}
@@ -294,7 +291,16 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
+	fmt.Println(&oauthUser)
+	err = oauthCodeBox.Val(code, &oauthUser)
+	fmt.Println(&oauthUser)
+
 	return c.Ok(code)
+}
+
+type userOAuth struct {
+	UserID   int    `json:"userId"`
+	ClientID string `json:"clientId"`
 }
 
 // GetOAuthCode obtain user authentication information through code
@@ -304,7 +310,7 @@ func GetOAuthCode(c *Context) error {
 		return c.BadRequest("code is empty")
 	}
 
-	var oauthUser oauthAuthForm
+	var oauthUser userOAuth
 
 	err := oauthCodeBox.Val(code, &oauthUser)
 	if err != nil {
