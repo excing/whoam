@@ -1,14 +1,16 @@
 package main
 
 import (
+	"whoam.xyz/ent"
 	"whoam.xyz/ent/method"
 	"whoam.xyz/ent/service"
 )
 
 // InitService initialize service related business
 func InitService() {
-	if ok, err := client.Service.Query().Where(service.IDEQ(MainServiceID)).Exist(ctx); !ok || err != nil {
-		_, err = client.Service.Create().
+	_service, err := client.Service.Query().Where(service.IDEQ(MainServiceID)).First(ctx)
+	if err != nil {
+		_service, err = client.Service.Create().
 			SetID(MainServiceID).
 			SetName("whoam service").
 			SetSubject("Support OAuth authorization, support service registration, support RAS.").
@@ -19,6 +21,67 @@ func InitService() {
 		if err != nil {
 			panic(err)
 		}
+	}
+
+	methods := []*serviceMethodBody{
+		{
+			Name:    "GetUser",
+			Subject: "获取你的基本信息",
+			Route:   "/user",
+			Scope:   method.ScopePrivate,
+		},
+		{
+			Name:    "GetOAuthState",
+			Subject: "获取你的授权状态",
+			Route:   "/user/oauth/state",
+			Scope:   method.ScopePrivate,
+		},
+		{
+			Name:    "PostService",
+			Subject: "注册服务到 WHOAM",
+			Route:   "/service",
+			Scope:   method.ScopePublic,
+		},
+		{
+			Name:    "PostServiceMethod",
+			Subject: "为服务添加方法",
+			Route:   "/service/:id/method",
+			Scope:   method.ScopePublic,
+		},
+		{
+			Name:    "PostServicePermission",
+			Subject: "为服务添加所需的权限",
+			Route:   "/service/:id/permission",
+			Scope:   method.ScopePublic,
+		},
+	}
+
+	var _methodCreates []*ent.MethodCreate
+	for _, _method := range methods {
+		_, err := client.Method.Update().
+			Where(
+				method.And(
+					method.NameEQ(_method.Name),
+					method.HasOwnerWith(service.IDEQ(MainServiceID)))).
+			SetSubject(_method.Subject).
+			SetRoute(_method.Route).
+			SetScope(_method.Scope).
+			Save(ctx)
+
+		if err != nil {
+			_methodCreate := client.Method.Create().
+				SetName(_method.Name).
+				SetSubject(_method.Subject).
+				SetRoute(_method.Route).
+				SetScope(_method.Scope).
+				SetOwner(_service)
+
+			_methodCreates = append(_methodCreates, _methodCreate)
+		}
+	}
+
+	if _, err := client.Method.CreateBulk(_methodCreates...).Save(ctx); err != nil {
+		panic(err)
 	}
 }
 
@@ -54,10 +117,10 @@ func PostService(c *Context) error {
 }
 
 type serviceMethodBody struct {
-	Name    string `json:"name"`
-	Route   string `json:"route"`
-	Subject string `json:"subject"`
-	Scope   string `json:"scope"`
+	Name    string       `json:"name"`
+	Route   string       `json:"route"`
+	Subject string       `json:"subject"`
+	Scope   method.Scope `json:"scope"`
 }
 
 // PostServiceMethod receive service method submission
