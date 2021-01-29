@@ -38,11 +38,11 @@
 
     function onRegisterService() {
       const form = {
-        serviceId: clientId,
-        serviceName: 'whoam example',
-        serviceDesc: 'Sample program for whoam service',
+        service_id: clientId,
+        service_name: 'whoam example',
+        service_desc: 'Sample program for whoam service',
         domain: 'http://127.0.0.1:5500/example',
-        cloneUri: 'https://github.com/excing/whoam.git',
+        clone_uri: 'https://github.com/excing/whoam.git',
       }
 
       // js object value of URLSearchParams
@@ -106,7 +106,7 @@
     var clientId = "example.whoam.xyz"
     var redirect_uri = "http://127.0.0.1:5500/example/redirect.html"
     var return_to = 'http://127.0.0.1:5500/example/index.html'
-    var href = whoam + "?state=" + state + "&clientId=" + clientId + "&redirect_uri=" + redirect_uri + "&return_to=" + return_to
+    var href = whoam + "?state=" + state + "&client_id=" + clientId + "&redirect_uri=" + redirect_uri + "&return_to=" + return_to
     document.getElementById('loginWithWhoam').href = href
 
     if (undefined != Cookies.get('accessToken')) {

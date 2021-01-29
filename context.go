@@ -20,7 +20,10 @@ type Context struct {
 
 func handle(fn func(p *Context) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fn(&Context{c})
+		if err := fn(&Context{c}); err != nil {
+			panic(err)
+		}
+		c.Abort()
 	}
 }
 
@@ -84,11 +87,29 @@ func (p *Context) Render(code int, r render.Render) error {
 	return r.Render(p.Writer)
 }
 
-// MovedPermanently 301 MovedPermanently
+// MovedPermanently 301 MovedPermanently, a HTTP redirect
 func (p *Context) MovedPermanently(location string) error {
-	p.Redirect(http.StatusMovedPermanently, location)
-	return nil
+	return p.Render(-1, render.Redirect{
+		Code:     http.StatusMovedPermanently,
+		Location: location,
+		Request:  p.Request,
+	})
 }
+
+// Found 302 Found, a HTTP redirect from POST
+func (p *Context) Found(location string) error {
+	return p.Render(-1, render.Redirect{
+		Code:     http.StatusFound,
+		Location: location,
+		Request:  p.Request,
+	})
+}
+
+// RouterRedirect is a Router redirect
+// func (p *Context) RouterRedirect(location string) error {
+// 	p.Request.URL.Path = "/test2"
+// 	r.HandleContext(c)
+// }
 
 // BadRequest writes a BadRequest code(400) with the given string into the response body.
 // Bad input parameter. Error message should indicate which one and why.

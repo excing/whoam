@@ -86,11 +86,11 @@ func InitService() {
 }
 
 type postServiceForm struct {
-	ServiceID   string `json:"serviceId,required"`
-	ServiceName string `json:"serviceName,required"`
-	ServiceDesc string
-	Domain      string `json:"domain,required"`
-	CloneURI    string `json:"cloneUri,required"`
+	ServiceID   string `json:"service_id" binding:"required"`
+	ServiceName string `json:"service_name" binding:"required"`
+	ServiceDesc string `json:"service_desc"`
+	Domain      string `json:"domain" binding:"required,url"`
+	CloneURI    string `json:"clone_uri" binding:"required"`
 }
 
 // PostService 提交服务注册
@@ -117,10 +117,10 @@ func PostService(c *Context) error {
 }
 
 type serviceMethodBody struct {
-	Name    string       `json:"name,required"`
-	Route   string       `json:"route,required"`
-	Subject string       `json:"subject,required"`
-	Scope   method.Scope `json:"scope,required"`
+	Name    string       `json:"name" binding:"required"`
+	Route   string       `json:"route" binding:"required"`
+	Subject string       `json:"subject" binding:"required"`
+	Scope   method.Scope `json:"scope" binding:"required"`
 }
 
 // PostServiceMethod receive service method submission
@@ -173,8 +173,8 @@ func PostServiceMethod(c *Context) error {
 }
 
 type servicePermissionBody struct {
-	ServiceID   string   `json:"serviceId,required"`
-	Permissions []string `json:"permissions,required"`
+	ServiceID   string   `json:"serviceId" binding:"required"`
+	Permissions []string `json:"permissions" binding:"required"`
 }
 
 // PostServicePermission receives the list of permissions required to add the specified service

@@ -24,8 +24,6 @@ const (
 	tlpUserLogin = "userLogin.html"
 	tlpUserOAuth = "userOAuth.html"
 
-	tlpFaviconSVG = "favicon.svg"
-
 	// MainServiceID main servvice id
 	MainServiceID = "whoam.xyz"
 )
@@ -33,6 +31,7 @@ const (
 var config Config
 var ctx context.Context
 var client *ent.Client
+var router *gin.Engine
 
 func init() {
 	config = Config{Port: 8030, Db: "test.db", Debug: false}
@@ -75,7 +74,6 @@ func main() {
 	htmls := []string{
 		tlpUserLogin,
 		tlpUserOAuth,
-		tlpFaviconSVG,
 	}
 
 	for _, v := range htmls {
@@ -84,7 +82,7 @@ func main() {
 		indexTmpl.Parse(data)
 	}
 
-	router := gin.Default()
+	router = gin.Default()
 	router.SetHTMLTemplate(tmpl)
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -100,8 +98,8 @@ func main() {
 	})
 	router.StaticFS("/favicon_io", packr.NewBox("./favicon_io"))
 
-	router.GET("/user/login", handle(PageUserLogin))
-	router.GET("/user/oauth", handle(PageUserOAuth))
+	router.GET("/user/login", authorizeUser, handle(PageUserLogin))
+	router.GET("/user/oauth", authorizeUser, handle(PageUserOAuth))
 
 	v1 := router.Group("/api/v1")
 

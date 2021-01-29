@@ -7,6 +7,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"whoam.xyz/ent"
 	"whoam.xyz/ent/method"
 	"whoam.xyz/ent/oauth"
@@ -47,6 +48,19 @@ func InitUser() {
 	signingKey = []byte(New32BitID())
 }
 
+func authorizeUser(c *gin.Context) {
+	_claims, err := FilterJWTToken(c.GetHeader("Authorization"), signingKey)
+	if err != nil {
+		if accessToken, err := c.Cookie("accessToken"); err == nil {
+			_claims, _ = FilterJWTToken(accessToken, signingKey)
+		}
+	}
+
+	c.Set("token", _claims)
+
+	c.Next()
+}
+
 // UserAuthorize Return true, if the specified accessToken is not found, return false
 func UserAuthorize(accessToken string) bool {
 	_, err := FilterJWTToken(accessToken, signingKey)
@@ -58,10 +72,10 @@ func UserAuthorize(accessToken string) bool {
 }
 
 type userVerificationForm struct {
-	Email string `json:"email,required"`
-	State string `json:"state,required" note:"This parameter should be consistent with the state in /user/main/login"`
-	Code  string `json:"code,required"`
-	Token string `json:"token,required"`
+	Email string `json:"email" binding:"required"`
+	State string `json:"state" binding:"required" note:"This parameter should be consistent with the state in /user/main/login"`
+	Code  string `json:"code" binding:"required"`
+	Token string `json:"token" binding:"required"`
 }
 
 // PostUserAuth 用户登录授权验证
@@ -133,8 +147,8 @@ func PostUserAuth(c *Context) error {
 }
 
 type userLoginForm struct {
-	Email string `json:"email,required"`
-	State string `json:"state,required" note:"random number"`
+	Email string `json:"email" binding:"required"`
+	State string `json:"state" binding:"required" note:"random number"`
 }
 
 // PostMainCode 用户登录
@@ -181,30 +195,41 @@ type UserOAuthLoginForm struct {
 }
 
 // PageUserLogin user login page
+// Scenarios:
+// 1. Once on the auth page, a `pushState` was performed and then refreshed again
+// 2. Switch to the login page when the auth page is not logged in
+// 3. Direct browser call
 func PageUserLogin(c *Context) error {
+	token := c.MustGet("token").(*StandardClaims)
+	fmt.Println(token)
 	return c.OkHTML(tlpUserLogin, nil)
 }
 
 // PageUserOAuth requesting user's whoam identity
 // GitHub: https://github.com/login?client_id=bfe378e98cde9624c98c&return_to=/login/oauth/authorize?client_id=bfe378e98cde9624c98c&redirect_uri=https://www.iconfont.cn/api/login/github/callback&state=123123sadh1as12
-// http://localhost:18030/user/login?state=aufbl1e442h&clientId=example.whoam.xyz&redirect_uri=http://127.0.0.1:5500/example/redirect.html&return_to=http://127.0.0.1:5500/example/index.html
+// Scenarios:
+// 1. Click from the A application  ✔
+// 2. Refresh the auth page again
+// 3. Click from the login page to come in
+// 4. Invalid call
 func PageUserOAuth(c *Context) error {
-	clientID, ok := c.GetQuery("clientId")
-	if !ok {
-		return c.BadRequest("clientId is empty")
+	var query struct {
+		ClientID    string `form:"client_id" binding:"required"`
+		RedirectURI string `form:"redirect_uri" binding:"required,url"`
+		ReturnTo    string `form:"return_to"`
+		State       string `form:"state" binding:"required"`
+	}
+	err := c.ShouldBindQuery(&query)
+	if err != nil {
+		return c.BadRequest(err.Error())
 	}
 
-	if accessToken, err := c.Cookie("accessToken"); err != nil || !UserAuthorize(accessToken) {
-		returnTo, ok := c.GetQuery("return_to")
-		url := c.Request.URL
-		if !ok {
-			returnTo = c.GetHeader("Referer")
-			return c.MovedPermanently("/user/login?" + url.RawQuery + "&return_to=" + returnTo)
-		}
-		return c.MovedPermanently("/user/login?" + url.RawQuery)
+	token := c.MustGet("token").(*StandardClaims)
+	if token == nil {
+		return c.OkHTML(tlpUserOAuth, nil)
 	}
 
-	_service, err := client.Service.Query().Where(service.IDEQ(clientID)).First(ctx)
+	_service, err := client.Service.Query().Where(service.IDEQ(query.ClientID)).First(ctx)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
@@ -267,9 +292,10 @@ func GetUser(c *Context) error {
 // PostUserOAuthAuth whoam user authorized the request(/user/oauth/auth request)
 func PostUserOAuthAuth(c *Context) error {
 	var form struct {
-		MainToken string `json:"mainToken,required"`
-		ClientID  string `json:"clientId,required"`
-		State     string `json:"state,required"`
+		MainToken   string `json:"mainToken" binding:"required"`
+		ClientID    string `json:"clientId" binding:"required"`
+		State       string `json:"state" binding:"required"`
+		Permissions []int  `json:"permissions" binding:"required"`
 	}
 	err := c.ShouldBindJSON(&form)
 	if err != nil {
@@ -291,9 +317,7 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.InternalServerError(err.Error())
 	}
 
-	fmt.Println(&oauthUser)
 	err = oauthCodeBox.Val(code, &oauthUser)
-	fmt.Println(&oauthUser)
 
 	return c.Ok(code)
 }
@@ -355,9 +379,9 @@ func GetOAuthState(c *Context) error {
 }
 
 type oauthRefreshForm struct {
-	UserID       uint   `schema:"userId,required"`
-	RefreshToken string `schema:"refreshToken,required"`
-	ClientID     string `schema:"clientId,required"`
+	UserID       uint   `schema:"userId" binding:"required"`
+	RefreshToken string `schema:"refreshToken" binding:"required"`
+	ClientID     string `schema:"clientId" binding:"required"`
 }
 
 // PostUserOAuthRefresh refresh user access token
