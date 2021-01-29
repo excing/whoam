@@ -97,24 +97,37 @@ func main() {
 	})
 	router.StaticFS("/favicon_io", packr.NewBox("./favicon_io"))
 
-	router.GET("/user/login", authorizeUser, handle(PageUserLogin))
-	router.GET("/user/oauth", authorizeUser, handle(PageUserOAuth))
+	{
+		// Web page
+		router.GET("/user/login", authorizeUser, handle(PageUserLogin))
+		router.GET("/user/oauth", authorizeUser, handle(PageUserOAuth))
+	}
 
 	v1 := router.Group("/api/v1")
+	{
+		mainRouter := v1.Group("/user/main")
+		{
+			mainRouter.POST("/code", handle(PostMainCode))
+			mainRouter.POST("/auth", handle(PostMainAuth))
+		}
 
-	v1.POST("/user/main/code", handle(PostMainCode))
-	v1.POST("/user/main/auth", handle(PostUserAuth))
+		oauthRouter := v1.Group("/user/oauth")
+		{
+			oauthRouter.POST("/auth", handle(PostUserOAuthAuth))
+			oauthRouter.POST("/refresh", handle(PostUserOAuthRefresh))
 
-	v1.POST("/user/oauth/auth", handle(PostUserOAuthAuth))
-	v1.POST("/user/oauth/refresh", handle(PostUserOAuthRefresh))
+			oauthRouter.GET("/base", handle(GetUser))
+			oauthRouter.GET("/token", handle(GetOAuthCode))
+			oauthRouter.GET("/state", handle(GetOAuthState))
+		}
 
-	v1.GET("/user", handle(GetUser))
-	v1.GET("/user/oauth/token", handle(GetOAuthCode))
-	v1.GET("/user/oauth/state", handle(GetOAuthState))
-
-	v1.POST("/service", handle(PostService))
-	v1.POST("/service/method", handle(PostServiceMethod))
-	v1.POST("/service/permission", handle(PostServicePermission))
+		serviceRouter := v1.Group("/service")
+		{
+			serviceRouter.POST("/", handle(PostService))
+			serviceRouter.POST("/method", handle(PostServiceMethod))
+			serviceRouter.POST("/permission", handle(PostServicePermission))
+		}
+	}
 
 	router.Run(":" + strconv.Itoa(config.Port))
 }
