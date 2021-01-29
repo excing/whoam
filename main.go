@@ -31,7 +31,6 @@ const (
 var config Config
 var ctx context.Context
 var client *ent.Client
-var router *gin.Engine
 
 func init() {
 	config = Config{Port: 8030, Db: "test.db", Debug: false}
@@ -70,7 +69,7 @@ func main() {
 	InitService()
 
 	tmpl := template.New("user")
-	box := packr.NewBox("./web")
+	box := packr.NewBox("./html")
 	htmls := []string{
 		tlpUserLogin,
 		tlpUserOAuth,
@@ -82,7 +81,7 @@ func main() {
 		indexTmpl.Parse(data)
 	}
 
-	router = gin.Default()
+	router := gin.Default()
 	router.SetHTMLTemplate(tmpl)
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
