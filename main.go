@@ -123,8 +123,6 @@ func main() {
 		serviceRouter := v1.Group("/service")
 		{
 			serviceRouter.POST("/", handle(PostService))
-			serviceRouter.POST("/method", handle(PostServiceMethod))
-			serviceRouter.POST("/permission", handle(PostServicePermission))
 		}
 	}
 

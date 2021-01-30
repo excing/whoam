@@ -25,7 +25,7 @@ func (Oauth) Fields() []ent.Field {
 // Edges of the Oauth.
 func (Oauth) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("owner", User.Type).Ref("oauths").Required().Unique(),
+		edge.From("user", User.Type).Ref("oauths").Required().Unique(),
 		edge.To("service", Service.Type).Required().Unique(),
 	}
 }

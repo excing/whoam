@@ -78,7 +78,7 @@ func PostUserOAuthAuth(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	owner, err := client.Oauth.Query().Where(oauth.MainTokenEQ(form.MainToken)).QueryOwner().Only(ctx)
+	owner, err := client.Oauth.Query().Where(oauth.MainTokenEQ(form.MainToken)).QueryUser().Only(ctx)
 	if err != nil {
 		return c.Unauthorized("Invalid token, please login again")
 	}
@@ -122,7 +122,7 @@ func GetOAuthCode(c *Context) error {
 	auth, err := client.Oauth.Create().
 		SetMainToken(New64BitID()).
 		SetExpiredAt(time.Now().Add(timeoutRefreshToken)).
-		SetOwnerID(oauthUser.UserID).
+		SetUserID(oauthUser.UserID).
 		SetServiceID(oauthUser.ClientID).
 		Save(ctx)
 
@@ -158,7 +158,7 @@ func PostUserOAuthRefresh(c *Context) error {
 		return c.Unauthorized("Invalid refreshToken, please login again")
 	}
 
-	authUser, err := auth.QueryOwner().Only(ctx)
+	authUser, err := auth.QueryUser().Only(ctx)
 	if err != nil {
 		return c.Unauthorized("Invalid authorized user, please login again")
 	}

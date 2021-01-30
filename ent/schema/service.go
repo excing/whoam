@@ -4,7 +4,6 @@ import (
 	"regexp"
 
 	"github.com/facebook/ent"
-	"github.com/facebook/ent/schema/edge"
 	"github.com/facebook/ent/schema/field"
 )
 
@@ -25,13 +24,5 @@ func (Service) Fields() []ent.Field {
 		field.String("domain").Match(
 			regexp.MustCompile(`https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`)),
 		field.String("clone_uri").Match(regexp.MustCompile(`((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?`)),
-	}
-}
-
-// Edges of the Service.
-func (Service) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.To("methods", Method.Type),
-		edge.To("permissions", Method.Type),
 	}
 }

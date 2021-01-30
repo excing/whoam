@@ -98,7 +98,7 @@ func PostMainAuth(c *Context) error {
 	auth, err := client.Oauth.Create().
 		SetMainToken(mainToken).
 		SetExpiredAt(time.Now().Add(timeoutRefreshToken)).
-		SetOwner(user).
+		SetUser(user).
 		SetServiceID(MainServiceID).
 		Save(ctx)
 

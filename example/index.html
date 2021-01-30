@@ -21,13 +21,6 @@
   <div style="margin-top: 20px;">
     <button onclick="onRegisterService()">注册 example 服务</button>
   </div>
-  <div style="margin-top: 5px;">
-    <button onclick="addServiceMethod()">添加 example 方法</button>
-    <button onclick="addServicePermission()">添加 example 权限</button>
-  </div>
-  <div style="margin-top: 20px;">
-    <a href="/example/accord.html">查看约定</button>
-  </div>
   <script>
     function onLogout() {
       Cookies.remove('accessToken')
@@ -56,43 +49,6 @@
         url: 'http://localhost:18030/api/v1/service',
         data: form,
       })
-        .then(function (response) {
-          alert("Register successed")
-        })
-        .catch(function (error) {
-          alert("Register failured: " + error)
-        });
-    }
-
-    function addServiceMethod() {
-      axios.post('http://localhost:18030/api/v1/service/method?id=' + clientId, data = [{
-        name: "upload",
-        route: '/file/upload',
-        subject: 'upload public file',
-        scope: 'public',
-      }, {
-        name: "download",
-        route: '/file/download',
-        subject: 'download file, this is private method',
-        scope: 'private',
-      }])
-        .then(function (response) {
-          alert("Register successed")
-        })
-        .catch(function (error) {
-          alert("Register failured: " + error)
-        });
-    }
-
-    function addServicePermission() {
-      axios.post('http://localhost:18030/api/v1/service/permission?id=' + clientId, data = [{
-        serviceId: "whoam.xyz",
-        permissions: [
-          "PostService",
-          "GetUser",
-          "GetOAuthState",
-        ],
-      },])
         .then(function (response) {
           alert("Register successed")
         })
