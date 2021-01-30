@@ -12,71 +12,18 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ThreeTenth/css-theme@v0.1.1/colours.css" />
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
+  <script src="/js/main.js"></script>
 </head>
 
 <body class="black">
   <div id="login">
-    <form>
-      <div>Email: <input type="email" id="email" /></div>
-      <div>Code: <input type="text" id="code" /> <input onclick="loginCode()" type="button" value="获取登录授权码" /></div>
-      <input onclick="loginAuth()" type="button" value="登录" />
-    </form>
-    <script>
-      function loginCode() {
-        const email = document.getElementById('email').value
-        const state = Math.random().toString(36).slice(2)
-
-        axios({
-          method: 'post',
-          url: '/api/v1/user/main/code',
-          data: {
-            email: email,
-            state: state,
-          },
-        })
-          .then(function (response) {
-            loginToken = response.data
-            loginState = state
-          })
-          .catch(function (error) {
-            alert(error.response.data);
-          });
-      }
-
-      function loginAuth() {
-        const email = document.getElementById('email').value
-        const state = loginState
-        const token = loginToken
-        const code = document.getElementById('code').value
-
-        axios({
-          method: 'post',
-          url: '/api/v1/user/main/auth',
-          data: {
-            email: email,
-            state: state,
-            token: token,
-            code: code,
-          },
-        })
-          .then(function (response) {
-            var user = response.data
-            Cookies.set('access_token', user.accessToken)
-            saveItem("main_token", user.mainToken)
-
-            window.location.href = "/user/oauth" + window.location.search + "&again=true"
-          })
-      }
-
-      function saveItem(key, val) {
-        if (typeof (Storage) !== "undefined") {
-          localStorage.setItem(key, val)
-        } else {
-          alert("The browser is not supported local storage, please change the browser and try again.")
-        }
-      }
-    </script>
+    {{ template "fgm_login" }}
   </div>
+  <script>
+    function onLoginAuth() {
+      loginAuth()
+    }
+  </script>
 </body>
 
 </html>

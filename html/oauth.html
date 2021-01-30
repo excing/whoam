@@ -12,42 +12,54 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ThreeTenth/css-theme@v0.1.1/colours.css" />
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
+  <script src="/js/main.js"></script>
+  <style>
+    .hide {
+      display: none;
+    }
+  </style>
 </head>
 
 <body class="black" style="width: 480px; margin: auto; margin-top: 20px">
-  <div>{{ .User.Email }}</div>
-  <div>{{ .Service.Name }}</div>
-  <div>请求授权
+  {{ if not .Authorizated }}
+  <div id="login">
+    {{ template "fgm_login" }}
   </div>
-  <form>
-    <input onclick="allowAuth()" type="button" value="允许授权" />
-  </form>
-
   <script>
-    function allowAuth() {
-
-      axios({
-        method: 'post',
-        url: '/api/v1/user/oauth/auth',
-        data: {
-          mainToken: localStorage.getItem('mainToken'),
-          clientId: clientId,
-          state: state,
-        },
+    function onLoginAuth() {
+      loginAuth(function (response) {
+        history.pushState("", "", "./auth" + window.location.search)
       })
-        .then(function (response) {
-          const code = response.data
-          window.location.href = redirect_uri + "?return_to=" + return_to + "&code=" + code
+    }
+    function onRefreshToken() {
+      refreshToken(
+        function (response) {
+          location.reload();
+        },
+        function (response) {
+          history.pushState("", "", "./login" + window.location.search)
         })
     }
 
-    const url = new URL(window.location.href)
-    const return_to = url.searchParams.get('return_to')
-    const redirect_uri = url.searchParams.get('redirect_uri')
-    const state = url.searchParams.get('state')
-    const clientId = url.searchParams.get('client_id')
-    document.getElementById('clientId').innerText = clientId
+    onRefreshToken()
   </script>
+  {{ end }}
+  <div id="oauth">
+    <div>{{ if .Authorizated }} {{ .User.Email }} {{ end }}</div>
+    <div>{{ if .Authorizated }} {{ .Service.Name }} {{ end }}</div>
+    <div>请求授权
+    </div>
+    <form>
+      <input onclick="onAllowAuth()" type="button" value="允许授权" />
+    </form>
+    <script>
+      const url = new URL(window.location.href)
+      const return_to = url.searchParams.get('return_to')
+      const redirect_uri = url.searchParams.get('redirect_uri')
+      const state = url.searchParams.get('state')
+      const clientId = url.searchParams.get('client_id')
+    </script>
+  </div>
 </body>
 
 </html>

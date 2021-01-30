@@ -2,14 +2,6 @@ Redirecting...
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
 <script>
-  function saveItem(key, val) {
-    if (typeof (Storage) !== "undefined") {
-      localStorage.setItem(key, val)
-    } else {
-      alert("The browser is not supported local storage, please change the browser and try again.")
-    }
-  }
-
   const url_string = window.location.href
   const url = new URL(url_string)
   const return_to = url.searchParams.get("return_to")
@@ -19,7 +11,7 @@ Redirecting...
       var user = response.data
       Cookies.set('userId', user.userId)
       Cookies.set('accessToken', user.accessToken)
-      saveItem("mainToken", user.mainToken)
+      localStorage.setItem("main_token", user.mainToken)
       location.replace(return_to)
     })
     .catch(function (error) {

@@ -93,6 +93,8 @@ func main() {
 		c.Next()
 	})
 	router.StaticFS("/favicon_io", packr.NewBox("./favicon_io"))
+	router.StaticFS("/js", packr.NewBox("./res/js"))
+	router.StaticFS("/css", packr.NewBox("./res/css"))
 
 	authorized := router.Group("/")
 	authorized.Use(AuthRequired)

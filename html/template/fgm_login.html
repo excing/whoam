@@ -1,0 +1,7 @@
+{{ define "fgm_login" }}
+<form>
+  <div>Email: <input type="email" id="email" /></div>
+  <div>Code: <input type="text" id="code" /> <input onclick="onLoginCode()" type="button" value="获取登录授权码" /></div>
+  <input onclick="onLoginAuth()" type="button" value="登录" />
+</form>
+{{ end }}

@@ -44,20 +44,22 @@ func oauthEndpoint(c *Context) error {
 	}
 
 	var response struct {
-		User    *ent.User
-		Service *ent.Service
+		Authorizated bool
+		User         *ent.User
+		Service      *ent.Service
 	}
 
 	token := c.MustGet("token").(*StandardClaims)
 	if token == nil {
-		return c.MovedPermanently("/user/login?" + c.Request.URL.RawQuery)
+		return c.OkHTML(tlpUserOAuth, &response)
 	}
 
 	_user, err := client.User.Get(ctx, int(token.OtherID))
 	if err != nil {
-		return c.MovedPermanently("/user/login?" + c.Request.URL.RawQuery)
+		return c.OkHTML(tlpUserOAuth, &response)
 	}
 
+	response.Authorizated = true
 	response.User = _user
 	response.Service = _service
 
