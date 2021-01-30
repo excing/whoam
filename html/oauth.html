@@ -14,22 +14,15 @@
   <script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script>
 </head>
 
-<body class="black">
-  <div id="auth">
-    <div id="clientId"></div>
-    <div>请求授权，申请权限列表：
-      {{range $service, $methods := .}}
-      <div>{{ $service }}
-        {{ range $i, $method := $methods}}
-        <div><input type="checkbox" /> {{ $method.Subject }}</div>
-        {{end}}
-      </div>
-      {{end}}
-    </div>
-    <form>
-      <input onclick="allowAuth()" type="button" value="允许授权" />
-    </form>
+<body class="black" style="width: 480px; margin: auto; margin-top: 20px">
+  <div>{{ .User.Email }}</div>
+  <div>{{ .Service.Name }}</div>
+  <div>请求授权
   </div>
+  <form>
+    <input onclick="allowAuth()" type="button" value="允许授权" />
+  </form>
+
   <script>
     function allowAuth() {
 
@@ -48,12 +41,11 @@
         })
     }
 
-    const url_string = window.location.href
-    const url = new URL(url_string)
+    const url = new URL(window.location.href)
     const return_to = url.searchParams.get('return_to')
     const redirect_uri = url.searchParams.get('redirect_uri')
     const state = url.searchParams.get('state')
-    const clientId = url.searchParams.get('clientId')
+    const clientId = url.searchParams.get('client_id')
     document.getElementById('clientId').innerText = clientId
   </script>
 </body>

@@ -5,29 +5,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"whoam.xyz/ent"
-	"whoam.xyz/ent/method"
 	"whoam.xyz/ent/service"
 )
 
-// PageUserLogin user login page
+// loginEndpoint user loginEndpoint page
 // Scenarios:
 // 1. Once on the auth page, a `pushState` was performed and then refreshed again
-// 2. Switch to the login page when the auth page is not logged in
+// 2. Switch to the loginEndpoint page when the auth page is not logged in
 // 3. Direct browser call
-func PageUserLogin(c *Context) error {
+func loginEndpoint(c *Context) error {
 	token := c.MustGet("token").(*StandardClaims)
 	fmt.Println(token)
 	return c.OkHTML(tlpUserLogin, nil)
 }
 
-// PageUserOAuth requesting user's whoam identity
+// oauthEndpoint requesting user's whoam identity
 // GitHub: https://github.com/login?client_id=bfe378e98cde9624c98c&return_to=/login/oauth/authorize?client_id=bfe378e98cde9624c98c&redirect_uri=https://www.iconfont.cn/api/login/github/callback&state=123123sadh1as12
 // Scenarios:
 // 1. Click from the A application  ✔
 // 2. Refresh the auth page again
 // 3. Click from the login page to come in
 // 4. Invalid call
-func PageUserOAuth(c *Context) error {
+func oauthEndpoint(c *Context) error {
 	var query struct {
 		ClientID    string `form:"client_id" binding:"required"`
 		RedirectURI string `form:"redirect_uri" binding:"required,url"`
@@ -39,47 +38,48 @@ func PageUserOAuth(c *Context) error {
 		return c.BadRequest(err.Error())
 	}
 
-	token := c.MustGet("token").(*StandardClaims)
-	if token == nil {
-		return c.OkHTML(tlpUserOAuth, nil)
-	}
-
 	_service, err := client.Service.Query().Where(service.IDEQ(query.ClientID)).First(ctx)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
-	_permissions, err := _service.QueryPermissions().Where(method.ScopeEQ(method.ScopePrivate)).All(ctx)
+	var response struct {
+		User    *ent.User
+		Service *ent.Service
+	}
+
+	token := c.MustGet("token").(*StandardClaims)
+	if token == nil {
+		return c.MovedPermanently("/user/login?" + c.Request.URL.RawQuery)
+	}
+
+	_user, err := client.User.Get(ctx, int(token.OtherID))
 	if err != nil {
-		return c.BadRequest(err.Error())
+		return c.MovedPermanently("/user/login?" + c.Request.URL.RawQuery)
 	}
 
-	_result := make(map[string][]*ent.Method)
-	for _, _permission := range _permissions {
-		_service, err := _permission.QueryOwner().First(ctx)
-		if err != nil {
-			return c.InternalServerError(err.Error())
-		}
+	response.User = _user
+	response.Service = _service
 
-		_val, ok := _result[_service.Name]
-		_val = append(_val, _permission)
-		if !ok {
-			_result[_service.Name] = _val
-		}
-	}
-
-	return c.OkHTML(tlpUserOAuth, &_result)
+	return c.OkHTML(tlpUserOAuth, &response)
 }
 
-func authorizeUser(c *gin.Context) {
-	_claims, err := FilterJWTToken(c.GetHeader("Authorization"), signingKey)
+// AuthRequired middleware just in the "authorized" group.
+func AuthRequired(c *gin.Context) {
+	_jwtToken, err := FilterJWTToken(c.GetHeader("Authorization"), signingKey)
 	if err != nil {
-		if accessToken, err := c.Cookie("accessToken"); err == nil {
-			_claims, _ = FilterJWTToken(accessToken, signingKey)
+		if accessToken, err := c.Cookie("access_token"); err == nil {
+			_jwtToken, _ = FilterJWTToken(accessToken, signingKey)
 		}
 	}
 
-	c.Set("token", _claims)
+	if _jwtToken != nil {
+		if _jwtToken.Audience != MainServiceID {
+			_jwtToken = nil
+		}
+	}
+
+	c.Set("token", _jwtToken)
 
 	c.Next()
 }

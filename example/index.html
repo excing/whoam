@@ -110,9 +110,9 @@
     document.getElementById('loginWithWhoam').href = href
 
     if (undefined != Cookies.get('accessToken')) {
-      axios.get('http://localhost:18030/api/v1/user', config = { headers: { 'Authorization': Cookies.get('accessToken') } })
+      axios.get('http://localhost:18030/api/v1/user/oauth/base', config = { headers: { 'Authorization': Cookies.get('accessToken') } })
         .then(function (response) {
-          document.getElementById('user').innerText = response.data.email + '已登录'
+          document.getElementById('user').innerText = response.data.email + ' 已登录'
           document.getElementById('loginWithWhoam').hidden = true
           document.getElementById('logout').hidden = false
         })

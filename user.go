@@ -7,7 +7,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"whoam.xyz/ent/user"
 )
 
@@ -161,8 +160,4 @@ func PostMainCode(c *Context) error {
 	}
 
 	return c.Ok(token)
-}
-
-func mustAuthenticated(c *gin.Context) {
-
 }

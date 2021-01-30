@@ -69,10 +69,9 @@ func GetUser(c *Context) error {
 // PostUserOAuthAuth whoam user authorized the request(/user/oauth/auth request)
 func PostUserOAuthAuth(c *Context) error {
 	var form struct {
-		MainToken   string `json:"mainToken" binding:"required"`
-		ClientID    string `json:"clientId" binding:"required"`
-		State       string `json:"state" binding:"required"`
-		Permissions []int  `json:"permissions" binding:"required"`
+		MainToken string `json:"mainToken" binding:"required"`
+		ClientID  string `json:"clientId" binding:"required"`
+		State     string `json:"state" binding:"required"`
 	}
 	err := c.ShouldBindJSON(&form)
 	if err != nil {
@@ -143,13 +142,16 @@ func GetOAuthCode(c *Context) error {
 
 // PostUserOAuthRefresh refresh user access token
 func PostUserOAuthRefresh(c *Context) error {
-	refreshToken, err := c.GetFormString("refreshToken")
+	var _body struct {
+		MainToken string `json:"mainToken" binding:"required"`
+	}
+	err := c.ShouldBindJSON(&_body)
 	if err != nil {
 		return c.BadRequest(err.Error())
 	}
 
 	auth, err := client.Oauth.Query().
-		Where(oauth.MainTokenEQ(refreshToken)).
+		Where(oauth.MainTokenEQ(_body.MainToken)).
 		Where(oauth.ExpiredAtGT(time.Now())).
 		Only(ctx)
 	if err != nil {

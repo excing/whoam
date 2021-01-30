@@ -21,8 +21,8 @@ type Config struct {
 }
 
 const (
-	tlpUserLogin = "userLogin.html"
-	tlpUserOAuth = "userOAuth.html"
+	tlpUserLogin = "login.html"
+	tlpUserOAuth = "oauth.html"
 
 	// MainServiceID main servvice id
 	MainServiceID = "whoam.xyz"
@@ -31,6 +31,7 @@ const (
 var config Config
 var ctx context.Context
 var client *ent.Client
+var router *gin.Engine
 
 func init() {
 	config = Config{Port: 8030, Db: "test.db", Debug: false}
@@ -70,18 +71,14 @@ func main() {
 
 	tmpl := template.New("user")
 	box := packr.NewBox("./html")
-	htmls := []string{
-		tlpUserLogin,
-		tlpUserOAuth,
-	}
 
-	for _, v := range htmls {
+	for _, v := range box.List() {
 		indexTmpl := tmpl.New(v)
 		data, _ := box.FindString(v)
 		indexTmpl.Parse(data)
 	}
 
-	router := gin.Default()
+	router = gin.Default()
 	router.SetHTMLTemplate(tmpl)
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -97,10 +94,12 @@ func main() {
 	})
 	router.StaticFS("/favicon_io", packr.NewBox("./favicon_io"))
 
+	authorized := router.Group("/")
+	authorized.Use(AuthRequired)
 	{
 		// Web page
-		router.GET("/user/login", authorizeUser, handle(PageUserLogin))
-		router.GET("/user/oauth", authorizeUser, handle(PageUserOAuth))
+		authorized.GET("/user/login", handle(loginEndpoint))
+		authorized.GET("/user/oauth", handle(oauthEndpoint))
 	}
 
 	v1 := router.Group("/api/v1")
